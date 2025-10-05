@@ -375,16 +375,9 @@ export interface ButtonProps extends BaseComponentProps {
   type?: 'button' | 'submit' | 'reset';
 }
 
-export interface InputProps extends BaseComponentProps {
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
-  placeholder?: string;
-  value?: string;
-  defaultValue?: string;
-  disabled?: boolean;
-  required?: boolean;
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement>, BaseComponentProps {
   error?: string;
   label?: string;
-  onChange?: (value: string) => void;
 }
 
 export interface SelectOption {
