@@ -71,22 +71,22 @@
     - Test input validation and error responses
     - _Requirements: 1.1, 1.2, 1.4, 8.1, 8.2_
 
-- [ ] 5. Implement team management functionality
-  - [ ] 5.1 Create team CRUD operations and member management
+- [x] 5. Implement team management functionality
+  - [x] 5.1 Create team CRUD operations and member management
     - Create TeamController with CRUD endpoints
     - Implement TeamService with business logic and validation
     - Create team DTOs and member invitation functionality
     - Add authorization checks for team operations
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 8.3_
   
-  - [ ] 5.2 Implement team membership and invitation system
+  - [x] 5.2 Implement team membership and invitation system
     - Create TeamMember entity and repository
     - Implement invitation service with email notifications
     - Add member removal functionality with ownership checks
     - Handle team membership validation and constraints
     - _Requirements: 2.2, 2.4, 6.2, 6.3_
   
-  - [ ] 5.3 Write tests for team management functionality
+  - [x] 5.3 Write tests for team management functionality
     - Test team CRUD operations and validation
     - Test member invitation and removal processes
     - Test authorization for team operations
