@@ -93,22 +93,22 @@
     - Test team name uniqueness and constraints
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 6. Implement project management functionality
-  - [ ] 6.1 Create project CRUD operations within teams
+- [-] 6. Implement project management functionality
+  - [x] 6.1 Create project CRUD operations within teams
     - Create ProjectController with team-scoped endpoints
     - Implement ProjectService with date validation and status management
     - Create project DTOs and assignment functionality
     - Add authorization checks for project access
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 8.4, 8.5_
   
-  - [ ] 6.2 Implement project member assignment and access control
+  - [x] 6.2 Implement project member assignment and access control
     - Create ProjectMember entity for project assignments
     - Implement project assignment service and validation
     - Add access control for project visibility
     - Handle project status transitions and validation
     - _Requirements: 3.3, 3.5, 5.3_
   
-  - [ ] 6.3 Write tests for project management functionality
+  - [x] 6.3 Write tests for project management functionality
     - Test project CRUD operations and validation
     - Test project member assignment and access control
     - Test date validation and status transitions
