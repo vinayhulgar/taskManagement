@@ -1,0 +1,165 @@
+# Production-specific configuration overrides
+spring:
+  # Production Database Configuration with connection pooling optimizations
+  datasource:
+    hikari:
+      maximum-pool-size: ${DB_MAX_POOL_SIZE:50}
+      minimum-idle: ${DB_MIN_IDLE:10}
+      connection-timeout: 30000
+      validation-timeout: 5000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 30000
+      register-mbeans: true
+  
+  # Production JPA optimizations
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+          fetch_size: 50
+        cache:
+          use_second_level_cache: true
+          use_query_cache: true
+          region:
+            factory_class: org.hibernate.cache.jcache.JCacheRegionFactory
+        connection:
+          provider_disables_autocommit: true
+  
+  # Production Redis configuration with clustering support
+  data:
+    redis:
+      cluster:
+        nodes: ${REDIS_CLUSTER_NODES:}
+        max-redirects: 3
+      sentinel:
+        master: ${REDIS_SENTINEL_MASTER:}
+        nodes: ${REDIS_SENTINEL_NODES:}
+      lettuce:
+        cluster:
+          refresh:
+            adaptive: true
+            period: 30s
+        shutdown-timeout: 100ms
+
+# Production server optimizations
+server:
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: ${SERVER_MAX_THREADS:200}
+      min-spare: ${SERVER_MIN_THREADS:10}
+    connection-timeout: 20000
+    max-connections: 8192
+    accept-count: 100
+    max-http-form-post-size: 2MB
+    max-swallow-size: 2MB
+  compression:
+    enabled: true
+    min-response-size: 1024
+  http2:
+    enabled: true
+
+# Production management and monitoring
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+    ssl:
+      enabled: ${MANAGEMENT_SSL_ENABLED:false}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      cors:
+        allowed-origins: ${MANAGEMENT_CORS_ORIGINS:}
+  endpoint:
+    health:
+      show-details: when-authorized
+      cache:
+        time-to-live: 10s
+    metrics:
+      cache:
+        time-to-live: 10s
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
+      threshold: 10GB
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 60s
+        descriptions: true
+    tags:
+      application: ${spring.application.name}
+      environment: production
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+        spring.data.repository.invocations: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+        spring.data.repository.invocations: 0.5, 0.95, 0.99
+
+# Production security enhancements
+security:
+  headers:
+    frame-options: DENY
+    content-type-options: nosniff
+    xss-protection: "1; mode=block"
+    referrer-policy: strict-origin-when-cross-origin
+
+# Production logging with structured format for log aggregation
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    com.taskmanagement: ${LOG_LEVEL_APP:INFO}
+    org.springframework.security: ${LOG_LEVEL_SECURITY:WARN}
+    org.hibernate.SQL: ${LOG_LEVEL_SQL:WARN}
+    org.springframework.web: ${LOG_LEVEL_WEB:WARN}
+    org.flywaydb: INFO
+    org.springframework.cache: WARN
+  pattern:
+    console: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","thread":"%thread","logger":"%logger{36}","message":"%replace(%msg){"\"","\\\""}","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","userId":"%X{userId:-}"}%n'
+    file: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","thread":"%thread","logger":"%logger{36}","message":"%replace(%msg){"\"","\\\""}","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}","userId":"%X{userId:-}"}%n'
+
+# Production rate limiting with Redis backend
+rate-limit:
+  requests-per-minute: ${RATE_LIMIT_RPM:100}
+  enabled: true
+  redis-key-prefix: "prod_rate_limit:"
+  cleanup-interval: 300000 # 5 minutes
+
+# Production CORS - Very restrictive
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+  allowed-headers: "Authorization,Content-Type,X-Requested-With,X-API-Version"
+  exposed-headers: "X-Total-Count,X-Rate-Limit-Remaining,X-Rate-Limit-Reset,X-API-Version"
+  allow-credentials: true
+  max-age: 3600
+
+# Disable development tools in production
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# Production application info
+info:
+  app:
+    name: ${spring.application.name}
+    description: "Task Management API - Production Environment"
+    version: "@project.version@"
+    environment: production
+  build:
+    artifact: "@project.artifactId@"
+    name: "@project.name@"
+    time: "@maven.build.timestamp@"
+    version: "@project.version@"

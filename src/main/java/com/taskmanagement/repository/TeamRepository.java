@@ -57,6 +57,6 @@ public interface TeamRepository extends JpaRepository<Team, UUID> {
     /**
      * Find teams created within the last N days
      */
-    @Query("SELECT t FROM Team t WHERE t.createdAt >= CURRENT_TIMESTAMP - INTERVAL ':days' DAY")
-    List<Team> findTeamsCreatedInLastDays(@Param("days") int days);
+    @Query("SELECT t FROM Team t WHERE t.createdAt >= :cutoffDate")
+    List<Team> findTeamsCreatedInLastDays(@Param("cutoffDate") java.time.LocalDateTime cutoffDate);
 }

@@ -1,14 +1,13 @@
+# Default Configuration - Common settings across all profiles
 spring:
   application:
     name: task-management-api
   
   profiles:
-    active: development
+    active: ${SPRING_PROFILES_ACTIVE:development}
   
+  # Common Database Configuration
   datasource:
-    url: jdbc:postgresql://localhost:5432/taskmanagement
-    username: ${DB_USERNAME:taskmanagement}
-    password: ${DB_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
     hikari:
       connection-timeout: 20000
@@ -18,10 +17,14 @@ spring:
       max-lifetime: 1200000
       auto-commit: false
       pool-name: TaskManagementHikariCP
+      leak-detection-threshold: 60000
   
+  # Common JPA Configuration
   jpa:
     hibernate:
       ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
     show-sql: false
     properties:
       hibernate:
@@ -32,14 +35,188 @@ spring:
           batch_size: 20
         order_inserts: true
         order_updates: true
+        generate_statistics: false
     open-in-view: false
   
+  # Common Flyway Configuration
   flyway:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
     validate-on-migrate: true
+    clean-disabled: true
   
+  # Common Cache Configuration
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+      cache-null-values: false
+      key-prefix: "taskmanagement:"
+  
+  # Common Security Configuration
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_KEY:mySecretKey}
+      expiration: ${JWT_EXPIRATION:900000} # 15 minutes
+      refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days
+
+# Server Configuration
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api/v1
+  compression:
+    enabled: true
+    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
+  http2:
+    enabled: true
+  error:
+    include-message: always
+    include-binding-errors: always
+    include-stacktrace: on_param
+    include-exception: false
+
+# Management and Health Check Configuration
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,info,metrics,prometheus,env,configprops,loggers
+    enabled-by-default: true
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+      probes:
+        enabled: true
+    info:
+      enabled: true
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+    env:
+      show-values: when-authorized
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+    diskspace:
+      enabled: true
+    ping:
+      enabled: true
+  info:
+    env:
+      enabled: true
+    build:
+      enabled: true
+    git:
+      enabled: true
+      mode: full
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+        step: 60s
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      percentiles:
+        http.server.requests: 0.5, 0.95, 0.99
+      slo:
+        http.server.requests: 50ms, 100ms, 200ms, 500ms
+
+# Logging Configuration
+logging:
+  level:
+    com.taskmanagement: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework.web: WARN
+    org.springframework.cache: INFO
+  pattern:
+    console: "%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%5p) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n%wEx"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [%X{traceId:-},%X{spanId:-}] - %msg%n"
+  file:
+    name: logs/task-management-api.log
+    max-size: 50MB
+    max-history: 30
+    total-size-cap: 1GB
+  logback:
+    rollingpolicy:
+      clean-history-on-start: true
+
+# OpenAPI Documentation Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    display-request-duration: true
+    display-operation-id: true
+  show-actuator: true
+  use-management-port: false
+
+# CORS Configuration
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200}
+  allowed-methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
+  allowed-headers: "*"
+  exposed-headers: "X-Total-Count,X-Rate-Limit-Remaining,X-Rate-Limit-Reset"
+  allow-credentials: true
+  max-age: 3600
+
+# Rate Limiting Configuration
+rate-limit:
+  requests-per-minute: ${RATE_LIMIT_RPM:100}
+  enabled: ${RATE_LIMIT_ENABLED:true}
+  redis-key-prefix: "rate_limit:"
+
+# Application Information
+info:
+  app:
+    name: ${spring.application.name}
+    description: "Task Management API for team collaboration"
+    version: "@project.version@"
+    encoding: "@project.build.sourceEncoding@"
+    java:
+      version: "@java.version@"
+
+---
+# Development Profile Configuration
+spring:
+  config:
+    activate:
+      on-profile: development
+  
+  # Development Database
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/taskmanagement_dev}
+    username: ${DB_USERNAME:taskmanagement}
+    password: ${DB_PASSWORD:password}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  
+  # Development JPA Settings
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true
+        generate_statistics: true
+  
+  # Development Redis
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -52,29 +229,214 @@ spring:
           max-idle: 8
           min-idle: 0
   
+  # Development Cache Settings
   cache:
-    type: redis
     redis:
-      time-to-live: 600000
-      cache-null-values: false
+      time-to-live: 300000 # 5 minutes for development
+
+# Development Logging
+logging:
+  level:
+    com.taskmanagement: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    org.springframework.web: DEBUG
+    org.springframework.cache: DEBUG
+  file:
+    name: logs/task-management-api-dev.log
+
+# Development Management
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
+
+# Development CORS - More permissive
+cors:
+  allowed-origins: "*"
+  allowed-methods: "*"
+  allowed-headers: "*"
+
+# Development Rate Limiting - More lenient
+rate-limit:
+  requests-per-minute: 1000
+  enabled: true
+
+---
+# Test Profile Configuration
+spring:
+  config:
+    activate:
+      on-profile: test
   
+  # Test Database - H2 In-Memory
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: password
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 1
+  
+  # Test JPA Settings
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        generate_statistics: false
+  
+  # Disable Flyway for tests
+  flyway:
+    enabled: false
+  
+  # Test Redis - Embedded or different port
+  data:
+    redis:
+      host: localhost
+      port: 6370
+      timeout: 1000ms
+  
+  # Test Cache Settings
+  cache:
+    type: simple # Use simple cache for tests
+  
+  # Test Security Settings
   security:
     jwt:
-      secret-key: ${JWT_SECRET_KEY:mySecretKey}
+      secret-key: testSecretKey
+      expiration: 60000 # 1 minute for tests
+      refresh-expiration: 300000 # 5 minutes for tests
+
+# Test Logging - Minimal
+logging:
+  level:
+    com.taskmanagement: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.springframework.web: WARN
+    org.springframework.test: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Test Management - Limited exposure
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+# Test Rate Limiting - Disabled
+rate-limit:
+  enabled: false
+
+---
+# Production Profile Configuration
+spring:
+  config:
+    activate:
+      on-profile: production
+  
+  # Production Database
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/taskmanagement}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 30000
+      validation-timeout: 5000
+      leak-detection-threshold: 30000
+  
+  # Production JPA Settings
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        use_sql_comments: false
+        generate_statistics: false
+        jdbc:
+          batch_size: 50
+  
+  # Production Redis
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      timeout: 3000ms
+      ssl: ${REDIS_SSL:false}
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 10
+          min-idle: 5
+        cluster:
+          refresh:
+            adaptive: true
+            period: 30s
+  
+  # Production Cache Settings
+  cache:
+    redis:
+      time-to-live: 1800000 # 30 minutes for production
+  
+  # Production Security Settings
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_KEY}
       expiration: ${JWT_EXPIRATION:900000} # 15 minutes
       refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000} # 7 days
 
+# Production Server Settings
 server:
   port: ${SERVER_PORT:8080}
-  servlet:
-    context-path: /api/v1
-  compression:
-    enabled: true
-    mime-types: text/html,text/xml,text/plain,text/css,text/javascript,application/javascript,application/json
-  http2:
-    enabled: true
+  shutdown: graceful
+  tomcat:
+    threads:
+      max: 200
+      min-spare: 10
+    connection-timeout: 20000
+    max-connections: 8192
+    accept-count: 100
 
+# Production Logging - Structured JSON for log aggregation
+logging:
+  level:
+    com.taskmanagement: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    org.springframework.web: WARN
+    org.springframework.cache: WARN
+    org.flywaydb: INFO
+  pattern:
+    console: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","thread":"%thread","logger":"%logger{36}","message":"%msg","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}"}%n'
+    file: '{"timestamp":"%d{yyyy-MM-dd HH:mm:ss.SSS}","level":"%level","thread":"%thread","logger":"%logger{36}","message":"%msg","traceId":"%X{traceId:-}","spanId":"%X{spanId:-}"}%n'
+  file:
+    name: ${LOG_FILE:logs/task-management-api.log}
+    max-size: 100MB
+    max-history: 60
+    total-size-cap: 5GB
+
+# Production Management - Secure and limited
 management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
   endpoints:
     web:
       exposure:
@@ -82,104 +444,69 @@ management:
   endpoint:
     health:
       show-details: when-authorized
-  metrics:
-    export:
-      prometheus:
-        enabled: true
+    info:
+      enabled: true
+  security:
+    enabled: true
 
-logging:
-  level:
-    com.taskmanagement: INFO
-    org.springframework.security: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: logs/task-management-api.log
-    max-size: 10MB
-    max-history: 30
-
-# OpenAPI Documentation
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-    operationsSorter: method
-    tagsSorter: alpha
-  show-actuator: true
-
-# CORS Configuration
+# Production CORS - Restrictive
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200}
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
   allowed-methods: GET,POST,PUT,DELETE,OPTIONS
-  allowed-headers: "*"
+  allowed-headers: "Authorization,Content-Type,X-Requested-With"
+  exposed-headers: "X-Total-Count,X-Rate-Limit-Remaining,X-Rate-Limit-Reset"
   allow-credentials: true
   max-age: 3600
 
-# Rate Limiting
+# Production Rate Limiting - Strict
 rate-limit:
   requests-per-minute: ${RATE_LIMIT_RPM:100}
-  enabled: ${RATE_LIMIT_ENABLED:true}
+  enabled: true
 
----
-spring:
-  config:
-    activate:
-      on-profile: development
-  
-  datasource:
-    url: jdbc:postgresql://localhost:5432/taskmanagement_dev
-  
-  jpa:
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-  
-  logging:
-    level:
-      com.taskmanagement: DEBUG
-
----
-spring:
-  config:
-    activate:
-      on-profile: test
-  
-  datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: password
-  
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    database-platform: org.hibernate.dialect.H2Dialect
-  
-  flyway:
+# Production OpenAPI - Disabled in production
+springdoc:
+  api-docs:
     enabled: false
-  
-  data:
-    redis:
-      host: localhost
-      port: 6370
+  swagger-ui:
+    enabled: false
 
 ---
+# Staging Profile Configuration (inherits from production with some overrides)
 spring:
   config:
     activate:
-      on-profile: production
+      on-profile: staging
+    import: "application-production.yml"
   
-  jpa:
-    show-sql: false
-  
-  logging:
-    level:
-      com.taskmanagement: WARN
-      org.springframework.security: WARN
-      org.hibernate.SQL: WARN
-      org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  # Staging Database
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/taskmanagement_staging}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+
+# Staging Logging - More verbose than production
+logging:
+  level:
+    com.taskmanagement: DEBUG
+    org.springframework.security: INFO
+  file:
+    name: logs/task-management-api-staging.log
+
+# Staging Management - More endpoints for debugging
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,env,loggers
+
+# Staging OpenAPI - Enabled for testing
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+# Staging Rate Limiting - More lenient
+rate-limit:
+  requests-per-minute: 500

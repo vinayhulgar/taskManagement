@@ -4,7 +4,7 @@ import com.taskmanagement.service.AuditService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+
 
 import jakarta.persistence.PostPersist;
 import jakarta.persistence.PostRemove;
@@ -16,7 +16,6 @@ import jakarta.persistence.PreUpdate;
  * Configuration for JPA auditing and entity listeners
  */
 @Configuration
-@EnableJpaAuditing
 public class AuditConfig {
     
     private static AuditService auditService;
