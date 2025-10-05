@@ -2,83 +2,106 @@
 
 ## Introduction
 
-This feature involves building a comprehensive Task Management API that enables team collaboration through task creation, assignment, tracking, and real-time updates. The system will support multiple users working together on projects with role-based permissions, task dependencies, and notification systems to keep team members informed of progress and changes.
+Build a RESTful API for a task management system that allows teams to collaborate on projects, assign tasks, track progress, and manage deadlines. The system will support JWT authentication, role-based access control, and comprehensive audit trails while maintaining high performance and following REST API best practices.
 
 ## Requirements
 
-### Requirement 1
+### Requirement 1: User Management
 
-**User Story:** As a team member, I want to create and manage tasks, so that I can organize my work and track progress on projects.
-
-#### Acceptance Criteria
-
-1. WHEN a user creates a task THEN the system SHALL store the task with title, description, priority, due date, and status
-2. WHEN a user updates a task THEN the system SHALL save the changes and update the last modified timestamp
-3. WHEN a user deletes a task THEN the system SHALL remove the task and notify assigned team members
-4. WHEN a user views tasks THEN the system SHALL display tasks with filtering options by status, priority, assignee, and due date
-
-### Requirement 2
-
-**User Story:** As a project manager, I want to assign tasks to team members, so that I can distribute work effectively and ensure accountability.
+**User Story:** As a user, I want to register and authenticate with the system, so that I can securely access my team's projects and tasks.
 
 #### Acceptance Criteria
 
-1. WHEN a manager assigns a task to a user THEN the system SHALL update the task assignee and send a notification
-2. WHEN a task is reassigned THEN the system SHALL notify both the previous and new assignees
-3. WHEN a user is assigned multiple tasks THEN the system SHALL display their current workload
-4. IF a user is not available THEN the system SHALL prevent task assignment and display an appropriate message
+1. WHEN a user registers with email and password THEN the system SHALL validate email format and password complexity requirements
+2. WHEN a user authenticates THEN the system SHALL return a JWT token for subsequent API calls
+3. WHEN a user has a role assigned THEN the system SHALL enforce permissions for Admin, Manager, or Member roles
+4. WHEN a user updates their profile THEN the system SHALL validate and save the changes
+5. WHEN a user joins multiple teams THEN the system SHALL maintain their membership across all teams
 
-### Requirement 3
+### Requirement 2: Team Management
 
-**User Story:** As a team member, I want to receive real-time notifications about task updates, so that I can stay informed about project changes and deadlines.
-
-#### Acceptance Criteria
-
-1. WHEN a task assigned to me is updated THEN the system SHALL send me a real-time notification
-2. WHEN a task I'm watching has status changes THEN the system SHALL notify me immediately
-3. WHEN a task deadline approaches THEN the system SHALL send reminder notifications to assignees
-4. WHEN I'm mentioned in task comments THEN the system SHALL send me an instant notification
-
-### Requirement 4
-
-**User Story:** As a team lead, I want to set up task dependencies, so that I can ensure proper work sequencing and identify potential bottlenecks.
+**User Story:** As an Admin or Manager, I want to create and manage teams, so that I can organize users and control project access.
 
 #### Acceptance Criteria
 
-1. WHEN I create a task dependency THEN the system SHALL prevent dependent tasks from starting until prerequisites are complete
-2. WHEN a prerequisite task is completed THEN the system SHALL automatically notify assignees of dependent tasks
-3. WHEN I view task dependencies THEN the system SHALL display a visual representation of the dependency chain
-4. IF a dependency creates a circular reference THEN the system SHALL reject the dependency and display an error message
+1. WHEN an Admin or Manager creates a team THEN the system SHALL require a unique team name (3-50 characters, alphanumeric with spaces)
+2. WHEN a team owner invites users via email THEN the system SHALL send invitation notifications
+3. WHEN team members view team details THEN the system SHALL display team information and member list
+4. WHEN a user leaves a team THEN the system SHALL remove their membership unless they are the team owner
+5. IF a team name already exists THEN the system SHALL return a 409 Conflict error
 
-### Requirement 5
+### Requirement 3: Project Management
 
-**User Story:** As a team member, I want to collaborate on tasks through comments and file attachments, so that I can share context and work together effectively.
-
-#### Acceptance Criteria
-
-1. WHEN I add a comment to a task THEN the system SHALL store the comment with timestamp and notify relevant team members
-2. WHEN I attach a file to a task THEN the system SHALL store the file securely and make it accessible to authorized team members
-3. WHEN I mention another user in a comment THEN the system SHALL send them a notification
-4. WHEN I view task history THEN the system SHALL display all comments and changes in chronological order
-
-### Requirement 6
-
-**User Story:** As a system administrator, I want to manage user roles and permissions, so that I can control access to sensitive project information and maintain security.
+**User Story:** As a Manager, I want to create and manage projects within teams, so that I can organize work and control task access.
 
 #### Acceptance Criteria
 
-1. WHEN I assign a role to a user THEN the system SHALL enforce the appropriate permissions for that role
-2. WHEN a user attempts an unauthorized action THEN the system SHALL deny access and log the attempt
-3. WHEN I modify role permissions THEN the system SHALL immediately apply changes to all users with that role
-4. IF a user's role is changed THEN the system SHALL update their access permissions in real-time
+1. WHEN a Manager creates a project THEN the system SHALL require name (3-100 characters), description, start date, end date, and status
+2. WHEN project status is set THEN the system SHALL accept only: Planning, Active, On Hold, Completed, Archived
+3. WHEN projects are assigned to team members THEN the system SHALL restrict task visibility to assigned members only
+4. WHEN end date is before start date THEN the system SHALL return a 422 Unprocessable Entity error
+5. IF a user is not assigned to a project THEN the system SHALL return 403 Forbidden when accessing project tasks
 
-### Requirement 7
+### Requirement 4: Task Management
 
-**User Story:** As a project stakeholder, I want to view project progress through dashboards and reports, so that I can track team performance and project status.
+**User Story:** As a team member, I want to create and manage tasks within projects, so that I can track work progress and collaborate effectively.
 
 #### Acceptance Criteria
 
-1. WHEN I access the dashboard THEN the system SHALL display current project metrics including completion rates and overdue tasks
-2. WHEN I generate a report THEN the system SHALL provide data on task completion, team productivity, and timeline adherence
-3. WHEN project milestones are reached THEN the system SHALL automatically update progress indicators
-4. WHEN I filter dashboard data THEN the system SHALL update visualizations in real-time based on selected criteria
+1. WHEN a task is created THEN the system SHALL require title (3-200 characters), description, priority, status, assignee, and due date
+2. WHEN task priority is set THEN the system SHALL accept only: Low, Medium, High, Critical
+3. WHEN task status is updated THEN the system SHALL accept only: Todo, In Progress, In Review, Completed, Blocked
+4. WHEN tasks have subtasks THEN the system SHALL support nested task relationships
+5. WHEN users filter tasks THEN the system SHALL support filtering by status, priority, assignee, and due date
+6. WHEN due date is in the past THEN the system SHALL return a 422 Unprocessable Entity error
+7. WHEN tasks have comments and attachments THEN the system SHALL store metadata for collaboration
+
+### Requirement 5: Authentication and Authorization
+
+**User Story:** As a system administrator, I want to enforce secure access controls, so that users can only access resources they're authorized to view.
+
+#### Acceptance Criteria
+
+1. WHEN API requests are made THEN the system SHALL require valid JWT Bearer tokens
+2. WHEN a user lacks permissions THEN the system SHALL return 403 Forbidden
+3. WHEN authentication fails THEN the system SHALL return 401 Unauthorized
+4. WHEN rate limits are exceeded THEN the system SHALL return 429 Too Many Requests (100 requests per minute per user)
+5. IF a JWT token is invalid or expired THEN the system SHALL reject the request with 401 Unauthorized
+
+### Requirement 6: Activity Tracking and Notifications
+
+**User Story:** As a team member, I want to receive notifications and view activity history, so that I can stay informed about project changes.
+
+#### Acceptance Criteria
+
+1. WHEN CRUD operations occur THEN the system SHALL log all activities for audit trail
+2. WHEN tasks are assigned to users THEN the system SHALL send notifications to assignees
+3. WHEN users are mentioned in comments THEN the system SHALL notify mentioned users
+4. WHEN task status changes THEN the system SHALL notify relevant team members
+5. WHEN users view activity feed THEN the system SHALL display recent team activities
+
+### Requirement 7: API Standards and Performance
+
+**User Story:** As a frontend developer, I want a well-documented and performant API, so that I can build reliable client applications.
+
+#### Acceptance Criteria
+
+1. WHEN API responses are returned THEN the system SHALL respond within 200ms for 95% of requests
+2. WHEN API documentation is accessed THEN the system SHALL provide OpenAPI 3.0 specification
+3. WHEN list endpoints are called THEN the system SHALL implement cursor-based pagination
+4. WHEN errors occur THEN the system SHALL return proper HTTP status codes and error messages
+5. WHEN cross-origin requests are made THEN the system SHALL support CORS for frontend integration
+6. IF validation fails THEN the system SHALL return 400 Bad Request with detailed error information
+
+### Requirement 8: Data Validation
+
+**User Story:** As a system user, I want data integrity to be maintained, so that the system remains reliable and secure.
+
+#### Acceptance Criteria
+
+1. WHEN passwords are created THEN the system SHALL require minimum 8 characters with uppercase, lowercase, and number
+2. WHEN email addresses are provided THEN the system SHALL validate proper email format
+3. WHEN team names are entered THEN the system SHALL enforce 3-50 character limit with alphanumeric and spaces only
+4. WHEN project names are provided THEN the system SHALL enforce 3-100 character limit
+5. WHEN task titles are entered THEN the system SHALL enforce 3-200 character limit
+6. IF any validation fails THEN the system SHALL return 400 Bad Request with specific validation errors
