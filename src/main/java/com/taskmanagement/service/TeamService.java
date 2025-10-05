@@ -1,5 +1,6 @@
 package com.taskmanagement.service;
 
+import com.taskmanagement.config.CacheConfig;
 import com.taskmanagement.dto.*;
 import com.taskmanagement.entity.Team;
 import com.taskmanagement.entity.TeamMember;
@@ -8,6 +9,8 @@ import com.taskmanagement.repository.TeamMemberRepository;
 import com.taskmanagement.repository.TeamRepository;
 import com.taskmanagement.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
@@ -67,6 +70,7 @@ public class TeamService {
      * Get team by ID
      */
     @PreAuthorize("hasRole('ADMIN') or @teamService.isTeamMember(#teamId, authentication.name)")
+    @Cacheable(value = CacheConfig.TEAM_CACHE, key = "#teamId")
     public TeamResponse getTeamById(UUID teamId) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
@@ -77,6 +81,7 @@ public class TeamService {
     /**
      * Get all teams for a user (including teams where user is owner or member)
      */
+    @Cacheable(value = CacheConfig.TEAM_CACHE, key = "'user:' + #userId")
     public List<TeamResponse> getUserTeams(UUID userId) {
         List<Team> teams = teamMemberRepository.findTeamsByUserId(userId);
         return teams.stream()
@@ -88,6 +93,7 @@ public class TeamService {
      * Update team
      */
     @PreAuthorize("hasRole('ADMIN') or @teamService.isTeamOwner(#teamId, authentication.name)")
+    @CacheEvict(value = CacheConfig.TEAM_CACHE, allEntries = true)
     public TeamResponse updateTeam(UUID teamId, TeamUpdateRequest request) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));
@@ -117,6 +123,7 @@ public class TeamService {
      * Delete team
      */
     @PreAuthorize("hasRole('ADMIN') or @teamService.isTeamOwner(#teamId, authentication.name)")
+    @CacheEvict(value = CacheConfig.TEAM_CACHE, allEntries = true)
     public void deleteTeam(UUID teamId) {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new IllegalArgumentException("Team not found"));

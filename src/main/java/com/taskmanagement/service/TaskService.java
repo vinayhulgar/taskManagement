@@ -1,5 +1,6 @@
 package com.taskmanagement.service;
 
+import com.taskmanagement.config.CacheConfig;
 import com.taskmanagement.dto.TaskCreateRequest;
 import com.taskmanagement.dto.TaskFilterRequest;
 import com.taskmanagement.dto.TaskResponse;
@@ -13,6 +14,8 @@ import com.taskmanagement.repository.ProjectRepository;
 import com.taskmanagement.repository.TaskRepository;
 import com.taskmanagement.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -110,6 +113,7 @@ public class TaskService {
      * Get task by ID
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.TASK_CACHE, key = "#taskId")
     public TaskResponse getTaskById(UUID taskId, UUID currentUserId) {
         Task task = taskRepository.findById(taskId)
             .orElseThrow(() -> new RuntimeException("Task not found"));
@@ -157,6 +161,7 @@ public class TaskService {
     /**
      * Update task
      */
+    @CacheEvict(value = CacheConfig.TASK_CACHE, key = "#taskId")
     public TaskResponse updateTask(UUID taskId, TaskUpdateRequest request, UUID currentUserId) {
         Task task = taskRepository.findById(taskId)
             .orElseThrow(() -> new RuntimeException("Task not found"));
@@ -227,6 +232,7 @@ public class TaskService {
     /**
      * Delete task
      */
+    @CacheEvict(value = CacheConfig.TASK_CACHE, key = "#taskId")
     public void deleteTask(UUID taskId, UUID currentUserId) {
         Task task = taskRepository.findById(taskId)
             .orElseThrow(() -> new RuntimeException("Task not found"));

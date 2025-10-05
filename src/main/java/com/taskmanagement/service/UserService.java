@@ -1,9 +1,12 @@
 package com.taskmanagement.service;
 
+import com.taskmanagement.config.CacheConfig;
 import com.taskmanagement.dto.RegisterRequest;
 import com.taskmanagement.dto.UserResponse;
 import com.taskmanagement.entity.User;
 import com.taskmanagement.repository.UserRepository;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +58,7 @@ public class UserService {
      * Find user by email
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.USER_CACHE, key = "'email:' + #email")
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
     }
@@ -63,6 +67,7 @@ public class UserService {
      * Find user by ID
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.USER_CACHE, key = "'id:' + #id")
     public Optional<User> findById(UUID id) {
         return userRepository.findById(id);
     }
@@ -70,6 +75,7 @@ public class UserService {
     /**
      * Update user's last login time
      */
+    @CacheEvict(value = CacheConfig.USER_CACHE, key = "'email:' + #email")
     public void updateLastLogin(String email) {
         userRepository.findByEmail(email).ifPresent(user -> {
             user.setLastLogin(LocalDateTime.now());
@@ -80,6 +86,7 @@ public class UserService {
     /**
      * Update user profile
      */
+    @CacheEvict(value = CacheConfig.USER_CACHE, allEntries = true)
     public UserResponse updateUserProfile(UUID userId, String firstName, String lastName) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
