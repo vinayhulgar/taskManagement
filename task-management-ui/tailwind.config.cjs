@@ -8,6 +8,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // CSS Variable-based colors for theme switching
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -16,16 +17,16 @@ module.exports = {
         primary: {
           DEFAULT: 'hsl(var(--primary))',
           foreground: 'hsl(var(--primary-foreground))',
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50: 'hsl(var(--primary-50))',
+          100: 'hsl(var(--primary-100))',
+          200: 'hsl(var(--primary-200))',
+          300: 'hsl(var(--primary-300))',
+          400: 'hsl(var(--primary-400))',
+          500: 'hsl(var(--primary-500))',
+          600: 'hsl(var(--primary-600))',
+          700: 'hsl(var(--primary-700))',
+          800: 'hsl(var(--primary-800))',
+          900: 'hsl(var(--primary-900))',
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
@@ -51,60 +52,91 @@ module.exports = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        // Semantic colors with full scales
         success: {
-          50: '#ecfdf5',
-          100: '#d1fae5',
-          200: '#a7f3d0',
-          300: '#6ee7b7',
-          400: '#34d399',
-          500: '#10b981',
-          600: '#059669',
-          700: '#047857',
-          800: '#065f46',
-          900: '#064e3b',
+          DEFAULT: 'hsl(var(--success))',
+          foreground: 'hsl(var(--success-foreground))',
+          50: 'hsl(var(--success-50))',
+          100: 'hsl(var(--success-100))',
+          200: 'hsl(var(--success-200))',
+          300: 'hsl(var(--success-300))',
+          400: 'hsl(var(--success-400))',
+          500: 'hsl(var(--success-500))',
+          600: 'hsl(var(--success-600))',
+          700: 'hsl(var(--success-700))',
+          800: 'hsl(var(--success-800))',
+          900: 'hsl(var(--success-900))',
         },
         warning: {
-          50: '#fffbeb',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#fbbf24',
-          500: '#f59e0b',
-          600: '#d97706',
-          700: '#b45309',
-          800: '#92400e',
-          900: '#78350f',
+          DEFAULT: 'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+          50: 'hsl(var(--warning-50))',
+          100: 'hsl(var(--warning-100))',
+          200: 'hsl(var(--warning-200))',
+          300: 'hsl(var(--warning-300))',
+          400: 'hsl(var(--warning-400))',
+          500: 'hsl(var(--warning-500))',
+          600: 'hsl(var(--warning-600))',
+          700: 'hsl(var(--warning-700))',
+          800: 'hsl(var(--warning-800))',
+          900: 'hsl(var(--warning-900))',
         },
         error: {
-          50: '#fef2f2',
-          100: '#fee2e2',
-          200: '#fecaca',
-          300: '#fca5a5',
-          400: '#f87171',
-          500: '#ef4444',
-          600: '#dc2626',
-          700: '#b91c1c',
-          800: '#991b1b',
-          900: '#7f1d1d',
+          DEFAULT: 'hsl(var(--error))',
+          foreground: 'hsl(var(--error-foreground))',
+          50: 'hsl(var(--error-50))',
+          100: 'hsl(var(--error-100))',
+          200: 'hsl(var(--error-200))',
+          300: 'hsl(var(--error-300))',
+          400: 'hsl(var(--error-400))',
+          500: 'hsl(var(--error-500))',
+          600: 'hsl(var(--error-600))',
+          700: 'hsl(var(--error-700))',
+          800: 'hsl(var(--error-800))',
+          900: 'hsl(var(--error-900))',
         },
         info: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
+          DEFAULT: 'hsl(var(--info))',
+          foreground: 'hsl(var(--info-foreground))',
+          50: 'hsl(var(--info-50))',
+          100: 'hsl(var(--info-100))',
+          200: 'hsl(var(--info-200))',
+          300: 'hsl(var(--info-300))',
+          400: 'hsl(var(--info-400))',
+          500: 'hsl(var(--info-500))',
+          600: 'hsl(var(--info-600))',
+          700: 'hsl(var(--info-700))',
+          800: 'hsl(var(--info-800))',
+          900: 'hsl(var(--info-900))',
+        },
+        // Neutral grays
+        gray: {
+          50: 'hsl(var(--gray-50))',
+          100: 'hsl(var(--gray-100))',
+          200: 'hsl(var(--gray-200))',
+          300: 'hsl(var(--gray-300))',
+          400: 'hsl(var(--gray-400))',
+          500: 'hsl(var(--gray-500))',
+          600: 'hsl(var(--gray-600))',
+          700: 'hsl(var(--gray-700))',
+          800: 'hsl(var(--gray-800))',
+          900: 'hsl(var(--gray-900))',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['Fira Code', 'Consolas', 'monospace'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        mono: ['Fira Code', 'Consolas', 'Monaco', 'Liberation Mono', 'Lucida Console', 'monospace'],
       },
       fontSize: {
+        // Design system typography scale
+        'caption': ['0.75rem', { lineHeight: '1rem', letterSpacing: '0.025em' }], // 12px
+        'body-small': ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '0.016em' }], // 14px
+        'body': ['1rem', { lineHeight: '1.5rem', letterSpacing: '0.009em' }], // 16px
+        'body-large': ['1.125rem', { lineHeight: '1.75rem', letterSpacing: '0.007em' }], // 18px
+        'heading-3': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.025em', fontWeight: '600' }], // 24px
+        'heading-2': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.025em', fontWeight: '600' }], // 30px
+        'heading-1': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.025em', fontWeight: '600' }], // 36px
+        // Keep existing for compatibility
         'xs': ['0.75rem', { lineHeight: '1rem' }],
         'sm': ['0.875rem', { lineHeight: '1.25rem' }],
         'base': ['1rem', { lineHeight: '1.5rem' }],
@@ -115,6 +147,15 @@ module.exports = {
         '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
       },
       spacing: {
+        // Design system spacing scale (4px grid)
+        'xs': '0.25rem', // 4px
+        'sm': '0.5rem',  // 8px
+        'md': '1rem',    // 16px
+        'lg': '1.5rem',  // 24px
+        'xl': '2rem',    // 32px
+        '2xl': '3rem',   // 48px
+        '3xl': '4rem',   // 64px
+        // Keep existing
         '18': '4.5rem',
         '88': '22rem',
       },

@@ -407,6 +407,18 @@ export interface SelectProps extends BaseComponentProps {
   onChange?: (value: string | string[]) => void;
 }
 
+export interface TextareaProps extends BaseComponentProps {
+  label?: string;
+  error?: string;
+  required?: boolean;
+  placeholder?: string;
+  value?: string;
+  defaultValue?: string;
+  disabled?: boolean;
+  rows?: number;
+  onChange?: (value: string) => void;
+}
+
 // Utility types
 export type Prettify<T> = {
   [K in keyof T]: T[K];
