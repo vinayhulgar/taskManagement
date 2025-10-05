@@ -2,10 +2,12 @@ package com.taskmanagement.config;
 
 import com.taskmanagement.security.JwtAuthenticationFilter;
 import com.taskmanagement.security.JwtAuthenticationProvider;
+import com.taskmanagement.service.UserDetailsServiceImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -30,11 +32,14 @@ public class SecurityConfig {
 
     private final JwtAuthenticationProvider jwtAuthenticationProvider;
     private final CorsConfigurationSource corsConfigurationSource;
+    private final UserDetailsServiceImpl userDetailsService;
 
     public SecurityConfig(JwtAuthenticationProvider jwtAuthenticationProvider, 
-                         CorsConfigurationSource corsConfigurationSource) {
+                         CorsConfigurationSource corsConfigurationSource,
+                         UserDetailsServiceImpl userDetailsService) {
         this.jwtAuthenticationProvider = jwtAuthenticationProvider;
         this.corsConfigurationSource = corsConfigurationSource;
+        this.userDetailsService = userDetailsService;
     }
 
     @Bean
@@ -43,8 +48,16 @@ public class SecurityConfig {
     }
 
     @Bean
+    public DaoAuthenticationProvider daoAuthenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
+
+    @Bean
     public AuthenticationManager authenticationManager() {
-        return new ProviderManager(List.of(jwtAuthenticationProvider));
+        return new ProviderManager(List.of(daoAuthenticationProvider(), jwtAuthenticationProvider));
     }
 
     @Bean
@@ -67,7 +80,7 @@ public class SecurityConfig {
             // Configure authorization rules
             .authorizeHttpRequests(authz -> authz
                 // Public endpoints
-                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 
