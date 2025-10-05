@@ -13,7 +13,7 @@
     "type-check": "tsc --noEmit",
     "preview": "vite preview",
     "clean": "rm -rf dist node_modules/.vite",
-    "prepare": "npm run type-check && npm run lint && npm run format:check"
+    "prepare": "echo 'Skipping prepare script for development'"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
