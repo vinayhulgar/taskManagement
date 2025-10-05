@@ -50,4 +50,40 @@ public class NotificationService {
         
         logger.info("Email content: {}", message);
     }
+    
+    /**
+     * Send task comment notification
+     */
+    public void sendTaskCommentNotification(com.taskmanagement.entity.Task task, com.taskmanagement.entity.Comment comment) {
+        logger.info("Sending task comment notification for task: {} by: {}", 
+                   task.getTitle(), comment.getAuthor().getEmail());
+        
+        if (task.getAssignee() != null) {
+            String message = String.format(
+                "New comment added to task '%s' by %s: %s",
+                task.getTitle(), 
+                comment.getAuthor().getFirstName() + " " + comment.getAuthor().getLastName(),
+                comment.getContent().length() > 100 ? comment.getContent().substring(0, 100) + "..." : comment.getContent()
+            );
+            
+            logger.info("Notification to {}: {}", task.getAssignee().getEmail(), message);
+        }
+    }
+    
+    /**
+     * Send mention notification
+     */
+    public void sendMentionNotification(com.taskmanagement.entity.Comment comment, com.taskmanagement.entity.User mentionedUser) {
+        logger.info("Sending mention notification to: {} for comment in task: {}", 
+                   mentionedUser.getEmail(), comment.getTask().getTitle());
+        
+        String message = String.format(
+            "You were mentioned in a comment on task '%s' by %s: %s",
+            comment.getTask().getTitle(),
+            comment.getAuthor().getFirstName() + " " + comment.getAuthor().getLastName(),
+            comment.getContent().length() > 100 ? comment.getContent().substring(0, 100) + "..." : comment.getContent()
+        );
+        
+        logger.info("Mention notification to {}: {}", mentionedUser.getEmail(), message);
+    }
 }

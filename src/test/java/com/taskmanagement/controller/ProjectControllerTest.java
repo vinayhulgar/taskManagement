@@ -197,7 +197,7 @@ class ProjectControllerTest {
                         .param("status", "PLANNING"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
-                .andExpected(jsonPath("$[0].status").value("PLANNING"));
+                .andExpect(jsonPath("$[0].status").value("PLANNING"));
         
         verify(projectService).getTeamProjectsByStatus(teamId, ProjectStatus.PLANNING);
     }

@@ -115,29 +115,29 @@
     - Test authorization for project operations
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 7. Implement task management functionality
-  - [ ] 7.1 Create task CRUD operations with subtask support
+- [x] 7. Implement task management functionality
+  - [x] 7.1 Create task CRUD operations with subtask support
     - Create TaskController with project-scoped endpoints
     - Implement TaskService with subtask relationships and validation
     - Create task DTOs with priority and status management
     - Add task assignment and due date validation
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.6, 8.4, 8.5_
   
-  - [ ] 7.2 Implement task filtering and search functionality
+  - [x] 7.2 Implement task filtering and search functionality
     - Add task filtering by status, priority, assignee, and due date
     - Implement task search with pagination support
     - Create filter DTOs and query specifications
     - Add sorting options for task lists
     - _Requirements: 4.5, 7.3_
   
-  - [ ] 7.3 Implement task comments and collaboration features
+  - [x] 7.3 Implement task comments and collaboration features
     - Create Comment entity and repository
     - Implement comment CRUD operations with task association
     - Add comment DTOs and user mention functionality
     - Handle comment notifications and activity logging
     - _Requirements: 4.7, 6.3, 6.4_
   
-  - [ ] 7.4 Write tests for task management functionality
+  - [x] 7.4 Write tests for task management functionality
     - Test task CRUD operations and subtask relationships
     - Test task filtering and search functionality
     - Test comment system and collaboration features

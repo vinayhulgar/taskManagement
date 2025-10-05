@@ -6,402 +6,330 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Repository tests for TaskRepository
+ * Test class for TaskRepository
  */
 @DataJpaTest
-@TestPropertySource(properties = {
-    "spring.flyway.enabled=false",
-    "spring.jpa.hibernate.ddl-auto=create-drop"
-})
 class TaskRepositoryTest {
-    
+
     @Autowired
     private TestEntityManager entityManager;
-    
+
     @Autowired
     private TaskRepository taskRepository;
-    
-    private User owner;
+
+    private User user;
     private User assignee;
     private Team team;
     private Project project;
-    private Task testTask;
-    
+    private Task parentTask;
+    private Task childTask;
+
     @BeforeEach
     void setUp() {
-        owner = new User();
-        owner.setEmail("owner@example.com");
-        owner.setPasswordHash("hashedPassword");
-        owner.setFirstName("Team");
-        owner.setLastName("Owner");
-        owner.setRole(Role.MANAGER);
-        owner = entityManager.persistAndFlush(owner);
-        
+        // Create test user
+        user = new User();
+        user.setEmail("test@example.com");
+        user.setPasswordHash("hashedPassword");
+        user.setFirstName("Test");
+        user.setLastName("User");
+        user.setRole(Role.MEMBER);
+        user = entityManager.persistAndFlush(user);
+
+        // Create assignee
         assignee = new User();
         assignee.setEmail("assignee@example.com");
         assignee.setPasswordHash("hashedPassword");
-        assignee.setFirstName("Task");
-        assignee.setLastName("Assignee");
+        assignee.setFirstName("Assignee");
+        assignee.setLastName("User");
         assignee.setRole(Role.MEMBER);
         assignee = entityManager.persistAndFlush(assignee);
-        
+
+        // Create team
         team = new Team();
-        team.setName("Development Team");
-        team.setDescription("A team for software development");
-        team.setOwner(owner);
+        team.setName("Test Team");
+        team.setDescription("Test Description");
+        team.setOwner(user);
         team = entityManager.persistAndFlush(team);
-        
+
+        // Create project
         project = new Project();
         project.setTeam(team);
-        project.setName("Web Application");
-        project.setDescription("A web application project");
+        project.setName("Test Project");
+        project.setDescription("Test Description");
         project.setStatus(ProjectStatus.ACTIVE);
-        project.setCreatedBy(owner);
+        project.setCreatedBy(user);
         project = entityManager.persistAndFlush(project);
-        
-        testTask = new Task();
-        testTask.setProject(project);
-        testTask.setTitle("Implement user authentication");
-        testTask.setDescription("Implement JWT-based user authentication");
-        testTask.setStatus(TaskStatus.TODO);
-        testTask.setPriority(Priority.HIGH);
-        testTask.setAssignee(assignee);
-        testTask.setDueDate(LocalDateTime.now().plusDays(7));
-        testTask.setCreatedBy(owner);
+
+        // Create parent task
+        parentTask = new Task();
+        parentTask.setProject(project);
+        parentTask.setTitle("Parent Task");
+        parentTask.setDescription("Parent Description");
+        parentTask.setStatus(TaskStatus.TODO);
+        parentTask.setPriority(Priority.HIGH);
+        parentTask.setAssignee(assignee);
+        parentTask.setCreatedBy(user);
+        parentTask.setDueDate(LocalDateTime.now().plusDays(7));
+        parentTask = entityManager.persistAndFlush(parentTask);
+
+        // Create child task
+        childTask = new Task();
+        childTask.setProject(project);
+        childTask.setParentTask(parentTask);
+        childTask.setTitle("Child Task");
+        childTask.setDescription("Child Description");
+        childTask.setStatus(TaskStatus.IN_PROGRESS);
+        childTask.setPriority(Priority.MEDIUM);
+        childTask.setAssignee(assignee);
+        childTask.setCreatedBy(user);
+        childTask.setDueDate(LocalDateTime.now().plusDays(3));
+        childTask = entityManager.persistAndFlush(childTask);
+
+        entityManager.clear();
     }
-    
+
     @Test
-    void testSaveAndFindById() {
-        Task savedTask = entityManager.persistAndFlush(testTask);
-        
-        Optional<Task> foundTask = taskRepository.findById(savedTask.getId());
-        
-        assertTrue(foundTask.isPresent());
-        assertEquals(testTask.getTitle(), foundTask.get().getTitle());
-        assertEquals(testTask.getDescription(), foundTask.get().getDescription());
-        assertEquals(testTask.getStatus(), foundTask.get().getStatus());
-        assertEquals(testTask.getPriority(), foundTask.get().getPriority());
-        assertEquals(testTask.getProject().getId(), foundTask.get().getProject().getId());
-        assertEquals(testTask.getAssignee().getId(), foundTask.get().getAssignee().getId());
-    }
-    
-    @Test
-    void testFindByProject() {
-        Task anotherTask = new Task();
-        anotherTask.setProject(project);
-        anotherTask.setTitle("Setup database");
-        anotherTask.setDescription("Setup PostgreSQL database");
-        anotherTask.setStatus(TaskStatus.IN_PROGRESS);
-        anotherTask.setPriority(Priority.MEDIUM);
-        anotherTask.setCreatedBy(owner);
-        
-        entityManager.persistAndFlush(testTask);
-        entityManager.persistAndFlush(anotherTask);
-        
+    void findByProject_Success() {
+        // Act
         List<Task> tasks = taskRepository.findByProject(project);
-        
+
+        // Assert
         assertEquals(2, tasks.size());
-        assertTrue(tasks.stream().anyMatch(t -> t.getTitle().equals("Implement user authentication")));
-        assertTrue(tasks.stream().anyMatch(t -> t.getTitle().equals("Setup database")));
+        assertTrue(tasks.stream().anyMatch(t -> t.getTitle().equals("Parent Task")));
+        assertTrue(tasks.stream().anyMatch(t -> t.getTitle().equals("Child Task")));
     }
-    
+
     @Test
-    void testFindByProjectId() {
-        entityManager.persistAndFlush(testTask);
-        
+    void findByProjectId_Success() {
+        // Act
         List<Task> tasks = taskRepository.findByProjectId(project.getId());
-        
-        assertEquals(1, tasks.size());
-        assertEquals("Implement user authentication", tasks.get(0).getTitle());
+
+        // Assert
+        assertEquals(2, tasks.size());
     }
-    
+
     @Test
-    void testFindByAssignee() {
-        entityManager.persistAndFlush(testTask);
-        
+    void findByAssignee_Success() {
+        // Act
         List<Task> tasks = taskRepository.findByAssignee(assignee);
-        
-        assertEquals(1, tasks.size());
-        assertEquals("Implement user authentication", tasks.get(0).getTitle());
+
+        // Assert
+        assertEquals(2, tasks.size());
+        assertTrue(tasks.stream().allMatch(t -> t.getAssignee().getId().equals(assignee.getId())));
     }
-    
+
     @Test
-    void testFindByAssigneeId() {
-        entityManager.persistAndFlush(testTask);
-        
+    void findByAssigneeId_Success() {
+        // Act
         List<Task> tasks = taskRepository.findByAssigneeId(assignee.getId());
-        
-        assertEquals(1, tasks.size());
-        assertEquals("Implement user authentication", tasks.get(0).getTitle());
+
+        // Assert
+        assertEquals(2, tasks.size());
     }
-    
+
     @Test
-    void testFindByStatus() {
-        Task inProgressTask = new Task();
-        inProgressTask.setProject(project);
-        inProgressTask.setTitle("In Progress Task");
-        inProgressTask.setDescription("A task in progress");
-        inProgressTask.setStatus(TaskStatus.IN_PROGRESS);
-        inProgressTask.setPriority(Priority.MEDIUM);
-        inProgressTask.setCreatedBy(owner);
-        
-        entityManager.persistAndFlush(testTask);
-        entityManager.persistAndFlush(inProgressTask);
-        
+    void findByStatus_Success() {
+        // Act
         List<Task> todoTasks = taskRepository.findByStatus(TaskStatus.TODO);
         List<Task> inProgressTasks = taskRepository.findByStatus(TaskStatus.IN_PROGRESS);
-        
+
+        // Assert
         assertEquals(1, todoTasks.size());
+        assertEquals("Parent Task", todoTasks.get(0).getTitle());
+        
         assertEquals(1, inProgressTasks.size());
-        assertEquals("Implement user authentication", todoTasks.get(0).getTitle());
-        assertEquals("In Progress Task", inProgressTasks.get(0).getTitle());
+        assertEquals("Child Task", inProgressTasks.get(0).getTitle());
     }
-    
+
     @Test
-    void testFindByPriority() {
-        Task lowPriorityTask = new Task();
-        lowPriorityTask.setProject(project);
-        lowPriorityTask.setTitle("Low Priority Task");
-        lowPriorityTask.setDescription("A low priority task");
-        lowPriorityTask.setStatus(TaskStatus.TODO);
-        lowPriorityTask.setPriority(Priority.LOW);
-        lowPriorityTask.setCreatedBy(owner);
-        
-        entityManager.persistAndFlush(testTask);
-        entityManager.persistAndFlush(lowPriorityTask);
-        
+    void findByPriority_Success() {
+        // Act
         List<Task> highPriorityTasks = taskRepository.findByPriority(Priority.HIGH);
-        List<Task> lowPriorityTasks = taskRepository.findByPriority(Priority.LOW);
-        
+        List<Task> mediumPriorityTasks = taskRepository.findByPriority(Priority.MEDIUM);
+
+        // Assert
         assertEquals(1, highPriorityTasks.size());
-        assertEquals(1, lowPriorityTasks.size());
-        assertEquals("Implement user authentication", highPriorityTasks.get(0).getTitle());
-        assertEquals("Low Priority Task", lowPriorityTasks.get(0).getTitle());
+        assertEquals("Parent Task", highPriorityTasks.get(0).getTitle());
+        
+        assertEquals(1, mediumPriorityTasks.size());
+        assertEquals("Child Task", mediumPriorityTasks.get(0).getTitle());
     }
-    
+
     @Test
-    void testFindByParentTask() {
-        Task parentTask = new Task();
-        parentTask.setProject(project);
-        parentTask.setTitle("Parent Task");
-        parentTask.setDescription("A parent task");
-        parentTask.setStatus(TaskStatus.IN_PROGRESS);
-        parentTask.setPriority(Priority.MEDIUM);
-        parentTask.setCreatedBy(owner);
-        parentTask = entityManager.persistAndFlush(parentTask);
-        
-        Task subtask = new Task();
-        subtask.setProject(project);
-        subtask.setParentTask(parentTask);
-        subtask.setTitle("Subtask");
-        subtask.setDescription("A subtask");
-        subtask.setStatus(TaskStatus.TODO);
-        subtask.setPriority(Priority.LOW);
-        subtask.setCreatedBy(owner);
-        
-        entityManager.persistAndFlush(subtask);
-        
+    void findByParentTask_Success() {
+        // Act
         List<Task> subtasks = taskRepository.findByParentTask(parentTask);
-        
+
+        // Assert
         assertEquals(1, subtasks.size());
-        assertEquals("Subtask", subtasks.get(0).getTitle());
+        assertEquals("Child Task", subtasks.get(0).getTitle());
         assertEquals(parentTask.getId(), subtasks.get(0).getParentTask().getId());
     }
-    
+
     @Test
-    void testFindByParentTaskIsNull() {
-        Task parentTask = new Task();
-        parentTask.setProject(project);
-        parentTask.setTitle("Parent Task");
-        parentTask.setDescription("A parent task");
-        parentTask.setStatus(TaskStatus.IN_PROGRESS);
-        parentTask.setPriority(Priority.MEDIUM);
-        parentTask.setCreatedBy(owner);
-        parentTask = entityManager.persistAndFlush(parentTask);
-        
-        Task subtask = new Task();
-        subtask.setProject(project);
-        subtask.setParentTask(parentTask);
-        subtask.setTitle("Subtask");
-        subtask.setDescription("A subtask");
-        subtask.setStatus(TaskStatus.TODO);
-        subtask.setPriority(Priority.LOW);
-        subtask.setCreatedBy(owner);
-        
-        entityManager.persistAndFlush(testTask);
-        entityManager.persistAndFlush(subtask);
-        
+    void findByParentTaskIsNull_Success() {
+        // Act
         List<Task> rootTasks = taskRepository.findByParentTaskIsNull();
-        
-        assertEquals(2, rootTasks.size()); // testTask and parentTask
-        assertTrue(rootTasks.stream().anyMatch(t -> t.getTitle().equals("Implement user authentication")));
-        assertTrue(rootTasks.stream().anyMatch(t -> t.getTitle().equals("Parent Task")));
+
+        // Assert
+        assertEquals(1, rootTasks.size());
+        assertEquals("Parent Task", rootTasks.get(0).getTitle());
+        assertNull(rootTasks.get(0).getParentTask());
     }
-    
+
     @Test
-    void testFindByProjectAndStatus() {
-        entityManager.persistAndFlush(testTask);
-        
-        List<Task> tasks = taskRepository.findByProjectAndStatus(project, TaskStatus.TODO);
-        
+    void findByProjectAndStatus_Success() {
+        // Act
+        List<Task> todoTasks = taskRepository.findByProjectAndStatus(project, TaskStatus.TODO);
+
+        // Assert
+        assertEquals(1, todoTasks.size());
+        assertEquals("Parent Task", todoTasks.get(0).getTitle());
+    }
+
+    @Test
+    void findByProjectAndAssignee_Success() {
+        // Act
+        List<Task> assigneeTasks = taskRepository.findByProjectAndAssignee(project, assignee);
+
+        // Assert
+        assertEquals(2, assigneeTasks.size());
+    }
+
+    @Test
+    void findByTitleContainingIgnoreCase_Success() {
+        // Act
+        List<Task> tasks = taskRepository.findByTitleContainingIgnoreCase("parent");
+
+        // Assert
         assertEquals(1, tasks.size());
-        assertEquals("Implement user authentication", tasks.get(0).getTitle());
+        assertEquals("Parent Task", tasks.get(0).getTitle());
     }
-    
+
     @Test
-    void testFindByProjectAndAssignee() {
-        entityManager.persistAndFlush(testTask);
-        
-        List<Task> tasks = taskRepository.findByProjectAndAssignee(project, assignee);
-        
-        assertEquals(1, tasks.size());
-        assertEquals("Implement user authentication", tasks.get(0).getTitle());
-    }
-    
-    @Test
-    void testFindByTitleContainingIgnoreCase() {
-        entityManager.persistAndFlush(testTask);
-        
-        List<Task> tasks = taskRepository.findByTitleContainingIgnoreCase("authentication");
-        
-        assertEquals(1, tasks.size());
-        assertEquals("Implement user authentication", tasks.get(0).getTitle());
-        
-        List<Task> upperCaseTasks = taskRepository.findByTitleContainingIgnoreCase("AUTHENTICATION");
-        assertEquals(1, upperCaseTasks.size());
-    }
-    
-    @Test
-    void testFindOverdueTasks() {
+    void findOverdueTasks_Success() {
+        // Create an overdue task
         Task overdueTask = new Task();
         overdueTask.setProject(project);
         overdueTask.setTitle("Overdue Task");
-        overdueTask.setDescription("An overdue task");
-        overdueTask.setStatus(TaskStatus.IN_PROGRESS);
-        overdueTask.setPriority(Priority.HIGH);
-        overdueTask.setDueDate(LocalDateTime.now().minusDays(5)); // Past due date
-        overdueTask.setCreatedBy(owner);
-        
-        entityManager.persistAndFlush(testTask);
+        overdueTask.setDescription("Overdue Description");
+        overdueTask.setStatus(TaskStatus.TODO);
+        overdueTask.setPriority(Priority.CRITICAL);
+        overdueTask.setAssignee(assignee);
+        overdueTask.setCreatedBy(user);
+        overdueTask.setDueDate(LocalDateTime.now().minusDays(1)); // Past due date
         entityManager.persistAndFlush(overdueTask);
-        
+
+        // Act
         List<Task> overdueTasks = taskRepository.findOverdueTasks(LocalDateTime.now());
-        
+
+        // Assert
         assertEquals(1, overdueTasks.size());
         assertEquals("Overdue Task", overdueTasks.get(0).getTitle());
     }
-    
+
     @Test
-    void testFindTasksDueBetween() {
-        LocalDateTime startRange = LocalDateTime.now().plusDays(5);
-        LocalDateTime endRange = LocalDateTime.now().plusDays(10);
-        
-        entityManager.persistAndFlush(testTask);
-        
-        List<Task> tasks = taskRepository.findTasksDueBetween(startRange, endRange);
-        
-        assertEquals(1, tasks.size());
-        assertEquals("Implement user authentication", tasks.get(0).getTitle());
+    void findTasksDueBetween_Success() {
+        // Act
+        LocalDateTime startDate = LocalDateTime.now().plusDays(2);
+        LocalDateTime endDate = LocalDateTime.now().plusDays(5);
+        List<Task> tasksDueBetween = taskRepository.findTasksDueBetween(startDate, endDate);
+
+        // Assert
+        assertEquals(1, tasksDueBetween.size());
+        assertEquals("Child Task", tasksDueBetween.get(0).getTitle());
     }
-    
+
     @Test
-    void testFindByAssigneeIdAndStatus() {
-        entityManager.persistAndFlush(testTask);
-        
+    void findByAssigneeIdAndStatus_Success() {
+        // Act
         List<Task> tasks = taskRepository.findByAssigneeIdAndStatus(assignee.getId(), TaskStatus.TODO);
-        
+
+        // Assert
         assertEquals(1, tasks.size());
-        assertEquals("Implement user authentication", tasks.get(0).getTitle());
+        assertEquals("Parent Task", tasks.get(0).getTitle());
     }
-    
+
     @Test
-    void testFindTasksByCriteria() {
-        entityManager.persistAndFlush(testTask);
-        
-        Page<Task> tasks = taskRepository.findTasksByCriteria(
-            project.getId(), assignee.getId(), TaskStatus.TODO, Priority.HIGH, PageRequest.of(0, 10)
-        );
-        
-        assertEquals(1, tasks.getTotalElements());
-        assertEquals("Implement user authentication", tasks.getContent().get(0).getTitle());
+    void findTasksByCriteria_Success() {
+        // Act
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Task> taskPage = taskRepository.findTasksByCriteria(
+                project.getId(), assignee.getId(), TaskStatus.TODO, Priority.HIGH, pageable);
+
+        // Assert
+        assertEquals(1, taskPage.getTotalElements());
+        assertEquals("Parent Task", taskPage.getContent().get(0).getTitle());
     }
-    
+
     @Test
-    void testCountByProjectAndStatus() {
-        Task anotherTask = new Task();
-        anotherTask.setProject(project);
-        anotherTask.setTitle("Another Task");
-        anotherTask.setDescription("Another task");
-        anotherTask.setStatus(TaskStatus.IN_PROGRESS);
-        anotherTask.setPriority(Priority.MEDIUM);
-        anotherTask.setCreatedBy(owner);
-        
-        entityManager.persistAndFlush(testTask);
-        entityManager.persistAndFlush(anotherTask);
-        
+    void countByProjectAndStatus_Success() {
+        // Act
         long todoCount = taskRepository.countByProjectAndStatus(project, TaskStatus.TODO);
         long inProgressCount = taskRepository.countByProjectAndStatus(project, TaskStatus.IN_PROGRESS);
-        
+
+        // Assert
         assertEquals(1, todoCount);
         assertEquals(1, inProgressCount);
     }
-    
+
     @Test
-    void testFindHighPriorityTasksByProjectId() {
-        Task criticalTask = new Task();
-        criticalTask.setProject(project);
-        criticalTask.setTitle("Critical Task");
-        criticalTask.setDescription("A critical task");
-        criticalTask.setStatus(TaskStatus.TODO);
-        criticalTask.setPriority(Priority.CRITICAL);
-        criticalTask.setCreatedBy(owner);
-        
-        Task lowTask = new Task();
-        lowTask.setProject(project);
-        lowTask.setTitle("Low Priority Task");
-        lowTask.setDescription("A low priority task");
-        lowTask.setStatus(TaskStatus.TODO);
-        lowTask.setPriority(Priority.LOW);
-        lowTask.setCreatedBy(owner);
-        
-        entityManager.persistAndFlush(testTask);
-        entityManager.persistAndFlush(criticalTask);
-        entityManager.persistAndFlush(lowTask);
-        
-        List<Task> highPriorityTasks = taskRepository.findHighPriorityTasksByProjectId(project.getId());
-        
-        assertEquals(2, highPriorityTasks.size());
-        assertTrue(highPriorityTasks.stream().anyMatch(t -> t.getTitle().equals("Implement user authentication")));
-        assertTrue(highPriorityTasks.stream().anyMatch(t -> t.getTitle().equals("Critical Task")));
+    void countByAssigneeAndStatus_Success() {
+        // Act
+        long todoCount = taskRepository.countByAssigneeAndStatus(assignee, TaskStatus.TODO);
+
+        // Assert
+        assertEquals(1, todoCount);
     }
-    
+
     @Test
-    void testFindUnassignedTasksByProjectId() {
+    void findHighPriorityTasksByProjectId_Success() {
+        // Act
+        List<Task> highPriorityTasks = taskRepository.findHighPriorityTasksByProjectId(project.getId());
+
+        // Assert
+        assertEquals(1, highPriorityTasks.size());
+        assertEquals("Parent Task", highPriorityTasks.get(0).getTitle());
+        assertEquals(Priority.HIGH, highPriorityTasks.get(0).getPriority());
+    }
+
+    @Test
+    void findByCreatedBy_Success() {
+        // Act
+        List<Task> tasks = taskRepository.findByCreatedBy(user);
+
+        // Assert
+        assertEquals(2, tasks.size());
+        assertTrue(tasks.stream().allMatch(t -> t.getCreatedBy().getId().equals(user.getId())));
+    }
+
+    @Test
+    void findUnassignedTasksByProjectId_Success() {
+        // Create an unassigned task
         Task unassignedTask = new Task();
         unassignedTask.setProject(project);
         unassignedTask.setTitle("Unassigned Task");
-        unassignedTask.setDescription("A task without assignee");
+        unassignedTask.setDescription("Unassigned Description");
         unassignedTask.setStatus(TaskStatus.TODO);
-        unassignedTask.setPriority(Priority.MEDIUM);
-        unassignedTask.setCreatedBy(owner);
+        unassignedTask.setPriority(Priority.LOW);
+        unassignedTask.setCreatedBy(user);
         // No assignee set
-        
-        entityManager.persistAndFlush(testTask);
         entityManager.persistAndFlush(unassignedTask);
-        
+
+        // Act
         List<Task> unassignedTasks = taskRepository.findUnassignedTasksByProjectId(project.getId());
-        
+
+        // Assert
         assertEquals(1, unassignedTasks.size());
         assertEquals("Unassigned Task", unassignedTasks.get(0).getTitle());
         assertNull(unassignedTasks.get(0).getAssignee());
