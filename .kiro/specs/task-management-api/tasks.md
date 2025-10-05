@@ -27,22 +27,22 @@
     - Test database constraints and error handling
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
 
-- [ ] 3. Implement authentication and security infrastructure
-  - [ ] 3.1 Configure Spring Security with JWT authentication
+- [x] 3. Implement authentication and security infrastructure
+  - [x] 3.1 Configure Spring Security with JWT authentication
     - Set up SecurityConfig with JWT authentication filter
     - Create JwtAuthenticationProvider and JwtAuthenticationToken
     - Configure password encoding with BCryptPasswordEncoder
     - Set up CORS configuration for frontend integration
     - _Requirements: 1.2, 5.1, 5.2, 5.5, 7.5_
   
-  - [ ] 3.2 Implement JWT token generation and validation services
+  - [x] 3.2 Implement JWT token generation and validation services
     - Create JwtService for token generation, validation, and parsing
     - Implement UserDetailsService for Spring Security integration
     - Create authentication DTOs for login/register requests and responses
     - Handle token expiration and refresh logic
     - _Requirements: 1.2, 5.1, 5.2, 5.5_
   
-  - [ ] 3.3 Write security tests for authentication and authorization
+  - [x] 3.3 Write security tests for authentication and authorization
     - Test JWT token generation and validation
     - Test authentication endpoints with @WebMvcTest
     - Test role-based access control with @WithMockUser
