@@ -1,5 +1,3 @@
 // API client exports
-
-// API client will be added in future tasks
-// export { apiClient } from './client';
-// export { setupInterceptors } from './interceptors';
+export { apiClient, TokenManager, isApiError, getErrorMessage, retryRequest } from './client';
+export { setupInterceptors } from './interceptors';

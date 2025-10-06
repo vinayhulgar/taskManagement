@@ -1,8 +1,11 @@
 // Service exports
 
-// API services will be added in future tasks
-// export { authService } from './auth';
-// export { userService } from './user';
-// export { teamService } from './team';
-// export { projectService } from './project';
-// export { taskService } from './task';
+// API client and utilities
+export * from './api';
+
+// Service classes
+export * from './auth';
+export * from './user';
+export * from './team';
+export * from './project';
+export * from './task';
