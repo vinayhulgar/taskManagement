@@ -100,8 +100,8 @@
     - Test store selectors and computed values
     - _Requirements: 1.5, 3.1, 4.1, 5.1, 6.3_
 
-- [-] 6. Create main layout and navigation components
-  - [-] 6.1 Build application layout shell
+- [x] 6. Create main layout and navigation components
+  - [x] 6.1 Build application layout shell
     - Create AppLayout component with sidebar and main content areas
     - Build responsive Sidebar component with navigation items
     - Implement TopBar component with breadcrumbs and user menu
@@ -109,7 +109,7 @@
     - Create responsive layout that adapts to different screen sizes
     - _Requirements: 2.1, 2.4, 7.1, 7.4_
   
-  - [ ] 6.2 Implement navigation and user interface elements
+  - [x] 6.2 Implement navigation and user interface elements
     - Build navigation menu with active state indicators
     - Create user profile dropdown with logout and settings options
     - Implement breadcrumb navigation for deep page hierarchies
@@ -117,7 +117,7 @@
     - Create search bar component for global search functionality
     - _Requirements: 2.1, 2.2, 2.5, 6.4, 7.3_
   
-  - [ ] 6.3 Write tests for layout and navigation
+  - [x] 6.3 Write tests for layout and navigation
     - Test responsive layout behavior across breakpoints
     - Test navigation menu interactions and active states
     - Test mobile drawer functionality
