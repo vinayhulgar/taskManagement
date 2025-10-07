@@ -1,21 +1,31 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { Notification, NotificationType, LoadingState } from '../types';
+import { Toast } from '../components/notifications/ToastNotification';
 
 export interface NotificationsState extends LoadingState {
   // State
   notifications: Notification[];
   unreadCount: number;
+  toasts: Toast[];
   
   // Actions
   setNotifications: (notifications: Notification[]) => void;
   addNotification: (notification: Notification) => void;
   updateNotification: (notificationId: string, updates: Partial<Notification>) => void;
   removeNotification: (notificationId: string) => void;
+  deleteNotification: (notificationId: string) => void;
+  clearAllNotifications: () => void;
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
   markAsUnread: (notificationId: string) => void;
   clearAll: () => void;
+  
+  // Toast actions
+  addToast: (toast: Omit<Toast, 'id'> & { id?: string }) => void;
+  removeToast: (toastId: string) => void;
+  clearAllToasts: () => void;
+  
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   clearError: () => void;
@@ -25,6 +35,7 @@ export interface NotificationsState extends LoadingState {
 const initialState = {
   notifications: [],
   unreadCount: 0,
+  toasts: [],
   isLoading: false,
   error: null,
 };
@@ -151,6 +162,35 @@ export const useNotificationsStore = create<NotificationsState>()(
           'notifications/markAsUnread'
         ),
 
+      deleteNotification: (notificationId) =>
+        set(
+          (state) => {
+            const notification = state.notifications.find((n) => n.id === notificationId);
+            const updatedNotifications = state.notifications.filter((n) => n.id !== notificationId);
+            
+            return {
+              ...state,
+              notifications: updatedNotifications,
+              unreadCount: notification && !notification.isRead 
+                ? state.unreadCount - 1 
+                : state.unreadCount,
+            };
+          },
+          false,
+          'notifications/deleteNotification'
+        ),
+
+      clearAllNotifications: () =>
+        set(
+          (state) => ({
+            ...state,
+            notifications: [],
+            unreadCount: 0,
+          }),
+          false,
+          'notifications/clearAllNotifications'
+        ),
+
       clearAll: () =>
         set(
           (state) => ({
@@ -160,6 +200,48 @@ export const useNotificationsStore = create<NotificationsState>()(
           }),
           false,
           'notifications/clearAll'
+        ),
+
+      // Toast actions
+      addToast: (toast) =>
+        set(
+          (state) => {
+            const newToast: Toast = {
+              id: toast.id || `toast-${Date.now()}-${Math.random()}`,
+              type: toast.type,
+              title: toast.title,
+              message: toast.message,
+              duration: toast.duration,
+              action: toast.action,
+            };
+            
+            return {
+              ...state,
+              toasts: [...state.toasts, newToast],
+            };
+          },
+          false,
+          'notifications/addToast'
+        ),
+
+      removeToast: (toastId) =>
+        set(
+          (state) => ({
+            ...state,
+            toasts: state.toasts.filter((toast) => toast.id !== toastId),
+          }),
+          false,
+          'notifications/removeToast'
+        ),
+
+      clearAllToasts: () =>
+        set(
+          (state) => ({
+            ...state,
+            toasts: [],
+          }),
+          false,
+          'notifications/clearAllToasts'
         ),
 
       setLoading: (isLoading) =>
@@ -208,6 +290,7 @@ export const useNotificationsStore = create<NotificationsState>()(
 // Selectors
 export const useNotifications = () => useNotificationsStore((state) => state.notifications);
 export const useUnreadCount = () => useNotificationsStore((state) => state.unreadCount);
+export const useToasts = () => useNotificationsStore((state) => state.toasts);
 export const useNotificationsLoading = () => useNotificationsStore((state) => state.isLoading);
 export const useNotificationsError = () => useNotificationsStore((state) => state.error);
 

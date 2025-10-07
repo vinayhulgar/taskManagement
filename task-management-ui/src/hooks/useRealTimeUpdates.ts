@@ -1,173 +1,127 @@
-import { useEffect, useCallback, useRef } from 'react';
-import { useTasksStore } from '../stores/tasks-store';
-import { useProjectsStore } from '../stores/projects-store';
-import { useNotificationsStore } from '../stores/notifications-store';
-import { Task, Project, Notification, ActivityType } from '../types';
+import { useEffect, useState, useCallback } from 'react';
+import { realTimeService, UserPresence } from '../services/websocket';
+import { useAuthStore } from '../stores/auth-store';
 
-export interface RealTimeEvent {
-  type: 'TASK_UPDATED' | 'TASK_CREATED' | 'TASK_DELETED' | 'PROJECT_UPDATED' | 'PROJECT_CREATED' | 'NOTIFICATION_RECEIVED';
+export interface RealTimeUpdate {
+  type: 'task_update' | 'notification' | 'user_presence' | 'connection';
   data: any;
   timestamp: string;
 }
 
-export interface UseRealTimeUpdatesOptions {
-  enabled?: boolean;
-  reconnectInterval?: number;
-  maxReconnectAttempts?: number;
-}
+export function useRealTimeUpdates() {
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState<RealTimeUpdate | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<UserPresence[]>([]);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuthStore();
 
-export const useRealTimeUpdates = (options: UseRealTimeUpdatesOptions = {}) => {
-  const {
-    enabled = true,
-    reconnectInterval = 5000,
-    maxReconnectAttempts = 5,
-  } = options;
+  const handleConnectionChange = useCallback((connected: boolean) => {
+    setIsConnected(connected);
+    setConnectionError(connected ? null : 'Connection lost');
+    setLastUpdate({
+      type: 'connection',
+      data: { connected },
+      timestamp: new Date().toISOString(),
+    });
+  }, []);
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectAttemptsRef = useRef(0);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const handlePresenceChange = useCallback((users: UserPresence[]) => {
+    setOnlineUsers(users);
+    setLastUpdate({
+      type: 'user_presence',
+      data: { users },
+      timestamp: new Date().toISOString(),
+    });
+  }, []);
 
-  // Store actions
-  const { updateTask, addTask, removeTask } = useTasksStore();
-  const { updateProject, addProject, removeProject } = useProjectsStore();
-  const { addNotification } = useNotificationsStore();
-
-  const handleWebSocketMessage = useCallback((event: MessageEvent) => {
-    try {
-      const realTimeEvent: RealTimeEvent = JSON.parse(event.data);
-      
-      switch (realTimeEvent.type) {
-        case 'TASK_CREATED':
-          addTask(realTimeEvent.data as Task);
-          break;
-          
-        case 'TASK_UPDATED':
-          const updatedTask = realTimeEvent.data as Task;
-          updateTask(updatedTask.id, updatedTask);
-          break;
-          
-        case 'TASK_DELETED':
-          removeTask(realTimeEvent.data.id);
-          break;
-          
-        case 'PROJECT_CREATED':
-          addProject(realTimeEvent.data as Project);
-          break;
-          
-        case 'PROJECT_UPDATED':
-          const updatedProject = realTimeEvent.data as Project;
-          updateProject(updatedProject.id, updatedProject);
-          break;
-          
-        case 'NOTIFICATION_RECEIVED':
-          addNotification(realTimeEvent.data as Notification);
-          break;
-          
-        default:
-          console.log('Unknown real-time event type:', realTimeEvent.type);
-      }
-    } catch (error) {
-      console.error('Failed to parse WebSocket message:', error);
-    }
-  }, [addTask, updateTask, removeTask, addProject, updateProject, removeProject, addNotification]);
-
-  const connect = useCallback(() => {
-    if (!enabled || wsRef.current?.readyState === WebSocket.OPEN) {
+  useEffect(() => {
+    if (!isAuthenticated) {
+      realTimeService.disconnect();
+      setIsConnected(false);
+      setOnlineUsers([]);
       return;
     }
 
-    try {
-      // In a real app, this would be the actual WebSocket URL
-      const wsUrl = process.env.VITE_WS_URL || 'ws://localhost:8080/ws';
-      wsRef.current = new WebSocket(wsUrl);
+    let mounted = true;
 
-      wsRef.current.onopen = () => {
-        console.log('WebSocket connected');
-        reconnectAttemptsRef.current = 0;
-        
-        // Send authentication token if available
-        const token = localStorage.getItem('accessToken');
-        if (token) {
-          wsRef.current?.send(JSON.stringify({
-            type: 'AUTH',
-            token,
-          }));
+    const connectToRealTime = async () => {
+      try {
+        await realTimeService.connect();
+        if (mounted) {
+          setConnectionError(null);
         }
-      };
-
-      wsRef.current.onmessage = handleWebSocketMessage;
-
-      wsRef.current.onclose = (event) => {
-        console.log('WebSocket disconnected:', event.code, event.reason);
-        
-        // Attempt to reconnect if not manually closed
-        if (event.code !== 1000 && reconnectAttemptsRef.current < maxReconnectAttempts) {
-          reconnectAttemptsRef.current++;
-          console.log(`Attempting to reconnect (${reconnectAttemptsRef.current}/${maxReconnectAttempts})...`);
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            connect();
-          }, reconnectInterval);
+      } catch (error) {
+        if (mounted) {
+          setConnectionError(error instanceof Error ? error.message : 'Connection failed');
+          console.error('Failed to connect to real-time service:', error);
         }
-      };
-
-      wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-
-    } catch (error) {
-      console.error('Failed to connect to WebSocket:', error);
-    }
-  }, [enabled, handleWebSocketMessage, maxReconnectAttempts, reconnectInterval]);
-
-  const disconnect = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    if (wsRef.current) {
-      wsRef.current.close(1000, 'Component unmounting');
-      wsRef.current = null;
-    }
-  }, []);
-
-  const sendMessage = useCallback((message: any) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
-    } else {
-      console.warn('WebSocket is not connected. Cannot send message:', message);
-    }
-  }, []);
-
-  // Connect on mount, disconnect on unmount
-  useEffect(() => {
-    if (enabled) {
-      connect();
-    }
-
-    return () => {
-      disconnect();
-    };
-  }, [enabled, connect, disconnect]);
-
-  // Reconnect when network comes back online
-  useEffect(() => {
-    const handleOnline = () => {
-      if (enabled && (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN)) {
-        console.log('Network back online, reconnecting WebSocket...');
-        connect();
       }
     };
 
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [enabled, connect]);
+    connectToRealTime();
+
+    // Set up event listeners
+    const unsubscribeConnection = realTimeService.onConnectionChange(handleConnectionChange);
+    const unsubscribePresence = realTimeService.onPresenceChange(handlePresenceChange);
+
+    return () => {
+      mounted = false;
+      unsubscribeConnection();
+      unsubscribePresence();
+      realTimeService.disconnect();
+    };
+  }, [isAuthenticated, handleConnectionChange, handlePresenceChange]);
+
+  const subscribeToTaskUpdates = useCallback((projectId?: string) => {
+    if (isConnected) {
+      realTimeService.subscribeToTaskUpdates(projectId);
+    }
+  }, [isConnected]);
+
+  const unsubscribeFromTaskUpdates = useCallback((projectId?: string) => {
+    realTimeService.unsubscribeFromTaskUpdates(projectId);
+  }, []);
+
+  const subscribeToProjectUpdates = useCallback((projectId: string) => {
+    if (isConnected) {
+      realTimeService.subscribeToProjectUpdates(projectId);
+    }
+  }, [isConnected]);
+
+  const unsubscribeFromProjectUpdates = useCallback((projectId: string) => {
+    realTimeService.unsubscribeFromProjectUpdates(projectId);
+  }, []);
+
+  const subscribeToTeamUpdates = useCallback((teamId: string) => {
+    if (isConnected) {
+      realTimeService.subscribeToTeamUpdates(teamId);
+    }
+  }, [isConnected]);
+
+  const unsubscribeFromTeamUpdates = useCallback((teamId: string) => {
+    realTimeService.unsubscribeFromTeamUpdates(teamId);
+  }, []);
+
+  const getUserPresence = useCallback((userId: string) => {
+    return realTimeService.getUserPresence(userId);
+  }, []);
+
+  const getOnlineUsers = useCallback(() => {
+    return realTimeService.getOnlineUsers();
+  }, []);
 
   return {
-    isConnected: wsRef.current?.readyState === WebSocket.OPEN,
-    connect,
-    disconnect,
-    sendMessage,
+    isConnected,
+    lastUpdate,
+    onlineUsers,
+    connectionError,
+    subscribeToTaskUpdates,
+    unsubscribeFromTaskUpdates,
+    subscribeToProjectUpdates,
+    unsubscribeFromProjectUpdates,
+    subscribeToTeamUpdates,
+    unsubscribeFromTeamUpdates,
+    getUserPresence,
+    getOnlineUsers,
   };
-};
+}
