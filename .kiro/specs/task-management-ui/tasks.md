@@ -148,7 +148,7 @@
     - Test responsive behavior of dashboard layout
     - _Requirements: 2.1, 2.3, 6.1, 8.1_
 
-- [-] 8. Build team management interface
+- [x] 8. Build team management interface
   - [x] 8.1 Create team list and overview pages
     - Build teams grid layout with team cards
     - Create team card component showing member count and activity
@@ -172,8 +172,8 @@
     - Test team settings and update functionality
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [ ] 9. Implement project management interface
-  - [ ] 9.1 Create project list and overview functionality
+- [-] 9. Implement project management interface
+  - [x] 9.1 Create project list and overview functionality
     - Build projects overview page with card/list view toggle
     - Create project card component with status and progress indicators
     - Implement project filtering by status, team, and date range
@@ -181,7 +181,7 @@
     - Create project search functionality with autocomplete
     - _Requirements: 4.1, 4.2, 4.5_
   
-  - [ ] 9.2 Build project detail and member management
+  - [x] 9.2 Build project detail and member management
     - Create project detail page with information header
     - Implement project member assignment interface
     - Build project timeline with milestones and deadlines

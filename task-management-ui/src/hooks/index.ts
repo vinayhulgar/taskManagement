@@ -1,6 +1,7 @@
 // Custom hooks exports
 export { useDashboard } from './useDashboard';
 export { useRealTimeUpdates } from './useRealTimeUpdates';
+export { useProjects } from './useProjects';
 export type { UseDashboardReturn } from './useDashboard';
 export type { RealTimeEvent, UseRealTimeUpdatesOptions } from './useRealTimeUpdates';
 
