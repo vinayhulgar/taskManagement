@@ -1,4 +1,8 @@
 // Custom hooks exports
+export { useDashboard } from './useDashboard';
+export { useRealTimeUpdates } from './useRealTimeUpdates';
+export type { UseDashboardReturn } from './useDashboard';
+export type { RealTimeEvent, UseRealTimeUpdatesOptions } from './useRealTimeUpdates';
 
 // Hooks will be added in future tasks
 // export { useAuth } from './use-auth';
