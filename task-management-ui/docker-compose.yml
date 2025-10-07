@@ -1,0 +1,116 @@
+version: '3.8'
+
+services:
+  # Task Management UI
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+        VITE_ENVIRONMENT: ${VITE_ENVIRONMENT:-production}
+        VITE_APP_NAME: ${VITE_APP_NAME:-Task Management System}
+        VITE_APP_VERSION: ${VITE_APP_VERSION:-1.0.0}
+    ports:
+      - "3000:8080"
+    environment:
+      - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8080}
+      - VITE_ENVIRONMENT=${VITE_ENVIRONMENT:-production}
+      - VITE_APP_NAME=${VITE_APP_NAME:-Task Management System}
+      - VITE_APP_VERSION=${VITE_APP_VERSION:-1.0.0}
+    depends_on:
+      - backend
+    networks:
+      - task-management-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Task Management API (Backend)
+  backend:
+    image: task-management-api:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - DATABASE_URL=jdbc:postgresql://db:5432/taskmanagement
+      - DATABASE_USERNAME=taskmanagement
+      - DATABASE_PASSWORD=taskmanagement123
+    depends_on:
+      - db
+      - redis
+    networks:
+      - task-management-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=taskmanagement
+      - POSTGRES_USER=taskmanagement
+      - POSTGRES_PASSWORD=taskmanagement123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - task-management-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskmanagement -d taskmanagement"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - task-management-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Nginx Load Balancer (for production)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-lb.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+    networks:
+      - task-management-network
+    restart: unless-stopped
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  task-management-network:
+    driver: bridge

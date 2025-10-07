@@ -1,0 +1,307 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: task-management-ui/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: task-management-ui
+      run: npm ci
+      
+    - name: Run linting
+      working-directory: task-management-ui
+      run: npm run lint
+      
+    - name: Run type checking
+      working-directory: task-management-ui
+      run: npm run type-check
+      
+    - name: Run unit tests
+      working-directory: task-management-ui
+      run: npm run test:coverage
+      
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      with:
+        file: task-management-ui/coverage/lcov.info
+        flags: frontend
+        name: frontend-coverage
+        
+    - name: Run integration tests
+      working-directory: task-management-ui
+      run: npm run test:integration
+      
+    - name: Build application
+      working-directory: task-management-ui
+      run: npm run build
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-files-${{ matrix.node-version }}
+        path: task-management-ui/dist/
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: task-management-ui/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: task-management-ui
+      run: npm ci
+      
+    - name: Install Playwright browsers
+      working-directory: task-management-ui
+      run: npx playwright install --with-deps
+      
+    - name: Start backend server
+      working-directory: .
+      run: |
+        mvn spring-boot:run &
+        sleep 30
+      env:
+        SPRING_PROFILES_ACTIVE: test
+        
+    - name: Run E2E tests
+      working-directory: task-management-ui
+      run: npm run test:e2e
+      
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: playwright-report
+        path: task-management-ui/playwright-report/
+        
+    - name: Upload E2E test videos
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: playwright-videos
+        path: task-management-ui/test-results/
+
+  accessibility-tests:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: task-management-ui/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: task-management-ui
+      run: npm ci
+      
+    - name: Install Playwright browsers
+      working-directory: task-management-ui
+      run: npx playwright install --with-deps
+      
+    - name: Run accessibility tests
+      working-directory: task-management-ui
+      run: npm run test:a11y
+      
+    - name: Upload accessibility test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: accessibility-report
+        path: task-management-ui/accessibility-report/
+
+  cross-browser-tests:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+        
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: task-management-ui/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: task-management-ui
+      run: npm ci
+      
+    - name: Install Playwright browsers
+      working-directory: task-management-ui
+      run: npx playwright install --with-deps ${{ matrix.browser }}
+      
+    - name: Run cross-browser tests
+      working-directory: task-management-ui
+      run: npx playwright test --project=${{ matrix.browser }}
+      
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.browser }}
+        path: task-management-ui/test-results/
+
+  performance-tests:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: task-management-ui/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: task-management-ui
+      run: npm ci
+      
+    - name: Build application
+      working-directory: task-management-ui
+      run: npm run build
+      
+    - name: Run Lighthouse CI
+      working-directory: task-management-ui
+      run: |
+        npm install -g @lhci/cli@0.12.x
+        lhci autorun
+      env:
+        LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run npm audit
+      working-directory: task-management-ui
+      run: npm audit --audit-level moderate
+      
+    - name: Run Snyk security scan
+      uses: snyk/actions/node@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --file=task-management-ui/package.json
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [test, e2e-tests, accessibility-tests, cross-browser-tests]
+    if: github.ref == 'refs/heads/develop'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: task-management-ui/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: task-management-ui
+      run: npm ci
+      
+    - name: Build for staging
+      working-directory: task-management-ui
+      run: npm run build
+      env:
+        VITE_API_BASE_URL: ${{ secrets.STAGING_API_URL }}
+        VITE_ENVIRONMENT: staging
+        
+    - name: Deploy to staging
+      run: |
+        echo "Deploying to staging environment..."
+        # Add your staging deployment commands here
+
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [test, e2e-tests, accessibility-tests, cross-browser-tests, performance-tests]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: task-management-ui/package-lock.json
+        
+    - name: Install dependencies
+      working-directory: task-management-ui
+      run: npm ci
+      
+    - name: Build for production
+      working-directory: task-management-ui
+      run: npm run build
+      env:
+        VITE_API_BASE_URL: ${{ secrets.PRODUCTION_API_URL }}
+        VITE_ENVIRONMENT: production
+        
+    - name: Deploy to production
+      run: |
+        echo "Deploying to production environment..."
+        # Add your production deployment commands here
+        
+    - name: Create release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release v${{ github.run_number }}
+        draft: false
+        prerelease: false
