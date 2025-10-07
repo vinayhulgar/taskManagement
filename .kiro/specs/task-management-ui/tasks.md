@@ -148,8 +148,8 @@
     - Test responsive behavior of dashboard layout
     - _Requirements: 2.1, 2.3, 6.1, 8.1_
 
-- [ ] 8. Build team management interface
-  - [ ] 8.1 Create team list and overview pages
+- [-] 8. Build team management interface
+  - [x] 8.1 Create team list and overview pages
     - Build teams grid layout with team cards
     - Create team card component showing member count and activity
     - Implement team creation modal with form validation
@@ -157,7 +157,7 @@
     - Create empty state for users with no teams
     - _Requirements: 3.1, 3.2, 3.3_
   
-  - [ ] 8.2 Implement team detail and member management
+  - [x] 8.2 Implement team detail and member management
     - Build team detail page with information and member list
     - Create member invitation interface with email input
     - Implement member role management and removal functionality
@@ -165,7 +165,7 @@
     - Create member activity timeline and contribution metrics
     - _Requirements: 3.3, 3.4, 3.5_
   
-  - [ ] 8.3 Write tests for team management features
+  - [x] 8.3 Write tests for team management features
     - Test team list rendering and filtering
     - Test team creation and validation
     - Test member invitation and management flows
