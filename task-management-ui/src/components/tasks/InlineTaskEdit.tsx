@@ -189,4 +189,5 @@ const InlineTaskEdit: React.FC<InlineTaskEditProps> = ({
   );
 };
 
+export { InlineTaskEdit };
 export default InlineTaskEdit;

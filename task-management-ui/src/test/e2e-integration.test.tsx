@@ -130,11 +130,7 @@ global.WebSocket = vi.fn().mockImplementation(() => ({
 }));
 
 const renderApp = () => {
-  return render(
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  );
+  return render(<App />);
 };
 
 describe('End-to-End Integration Tests', () => {
