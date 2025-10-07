@@ -116,7 +116,7 @@ test.describe('Complete User Workflows - Backend Integration', () => {
     // Verify task appears in TODO column
     await TEST_ASSERTIONS.expectVisible(page, `text=${testTask.title}`);
     const taskCard = page.locator(`[data-testid*="task-card"]`).filter({ hasText: testTask.title });
-    await TEST_ASSERTIONS.expectVisible(page, taskCard);
+    await expect(taskCard).toBeVisible();
 
     // Move task to IN_PROGRESS
     const inProgressColumn = page.locator('[data-testid="kanban-column-IN_PROGRESS"]');
@@ -131,7 +131,7 @@ test.describe('Complete User Workflows - Backend Integration', () => {
     await TEST_ASSERTIONS.expectApiResponse(updateResp, 200);
     
     // Verify task moved
-    await TEST_ASSERTIONS.expectVisible(page, inProgressColumn.locator(`text=${testTask.title}`));
+    await expect(inProgressColumn.locator(`text=${testTask.title}`)).toBeVisible();
 
     // Open task detail modal
     await taskCard.click();
@@ -184,7 +184,7 @@ test.describe('Complete User Workflows - Backend Integration', () => {
     await TEST_ASSERTIONS.expectApiResponse(completeResp, 200);
     
     // Verify task completed
-    await TEST_ASSERTIONS.expectVisible(page, doneColumn.locator(`text=${testTask.title}`));
+    await expect(doneColumn.locator(`text=${testTask.title}`)).toBeVisible();
 
     // Verify task appears in dashboard recent activities
     await page.goto('/dashboard');
@@ -197,12 +197,12 @@ test.describe('Complete User Workflows - Backend Integration', () => {
     
     // Should show task completion activity
     await page.waitForTimeout(2000); // Allow time for activity to be recorded
-    await TEST_ASSERTIONS.expectVisible(page, 'text=completed, text=finished');
+    await expect(page.locator('text=completed').or(page.locator('text=finished'))).toBeVisible();
   });
 
   test('Complete team creation, member invitation, and project management workflow', async ({ page }) => {
     // Login first
-    await loginUser(page);
+    await TEST_HELPERS.loginUser(page);
 
     // Create a new team
     await page.goto('/teams');
@@ -277,11 +277,11 @@ test.describe('Complete User Workflows - Backend Integration', () => {
 
   test('Real-time updates and notifications workflow', async ({ page, context }) => {
     // Login first
-    await loginUser(page);
+    await TEST_HELPERS.loginUser(page);
 
     // Open a second page to simulate another user
     const secondPage = await context.newPage();
-    await loginUser(secondPage, 'seconduser@example.com', 'SecondUser123!');
+    await TEST_HELPERS.loginUser(secondPage, 'seconduser@example.com', 'SecondUser123!');
 
     // Navigate both users to the same project/task board
     await page.goto('/tasks');
@@ -328,7 +328,7 @@ test.describe('Complete User Workflows - Backend Integration', () => {
 
   test('Error handling and recovery workflow', async ({ page }) => {
     // Login first
-    await loginUser(page);
+    await TEST_HELPERS.loginUser(page);
 
     // Test network error handling
     await page.goto('/tasks');
@@ -369,7 +369,7 @@ test.describe('Complete User Workflows - Backend Integration', () => {
 
   test('Performance and loading states workflow', async ({ page }) => {
     // Login first
-    await loginUser(page);
+    await TEST_HELPERS.loginUser(page);
 
     // Test loading states
     await page.goto('/dashboard');
@@ -422,6 +422,5 @@ test.describe('Complete User Workflows - Backend Integration', () => {
     await expect(page.locator('text=Task 2')).not.toBeVisible();
   });
 
-  // Helper function to login a user (using existing TEST_HELPERS.loginUser)
-  // This is now handled by TEST_HELPERS.loginUser from test-config.ts
+  // Helper functions are now handled by TEST_HELPERS from test-config.ts
 });
