@@ -172,7 +172,7 @@
     - Test team settings and update functionality
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
 
-- [-] 9. Implement project management interface
+- [x] 9. Implement project management interface
   - [x] 9.1 Create project list and overview functionality
     - Build projects overview page with card/list view toggle
     - Create project card component with status and progress indicators
@@ -189,7 +189,7 @@
     - Create project analytics dashboard with task metrics
     - _Requirements: 4.3, 4.4_
   
-  - [ ] 9.3 Write tests for project management features
+  - [x] 9.3 Write tests for project management features
     - Test project list rendering and filtering
     - Test project creation and validation
     - Test project member assignment and management
@@ -292,3 +292,47 @@
     - Configure CDN and static asset optimization
     - Set up monitoring and error tracking for production
     - _Requirements: 8.1, 8.2, 8.3_
+
+- [x] 14. Connect UI to Spring Boot API backend
+  - [x] 14.1 Replace mock authentication with real API integration
+    - Update AuthContext to use AuthService instead of mock responses
+    - Implement proper token refresh logic with API endpoints
+    - Add error handling for authentication failures
+    - Test login, registration, and logout flows with real backend
+    - _Requirements: 1.1, 1.2, 1.3, 1.4_
+  
+  - [x] 14.2 Connect task management to backend API
+    - Replace mock task data with TaskService API calls
+    - Implement real-time task updates through WebSocket connection
+    - Add proper error handling for task operations
+    - Test task CRUD operations, status updates, and filtering
+    - _Requirements: 5.1, 5.2, 5.3, 5.5, 5.6, 6.1_
+  
+  - [x] 14.3 Connect team and project management to backend API
+    - Replace mock data with TeamService and ProjectService API calls
+    - Implement member invitation and management through API
+    - Add proper error handling for team and project operations
+    - Test team/project CRUD operations and member management
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 4.1, 4.2, 4.3, 4.4_
+  
+  - [x] 14.4 Implement real-time notifications and activity feeds
+    - Connect WebSocket service to Spring Boot WebSocket endpoints
+    - Implement real-time task updates and notifications
+    - Add activity feed with real backend data
+    - Test real-time collaboration features
+    - _Requirements: 6.1, 6.3, 6.4_
+
+- [ ] 15. Final integration testing and bug fixes
+  - [ ] 15.1 Test complete user workflows with backend integration
+    - Test end-to-end user registration and login flow
+    - Test complete task management workflow from creation to completion
+    - Test team creation, member invitation, and project management
+    - Verify real-time updates and notifications work correctly
+    - _Requirements: 1.1, 3.1, 4.1, 5.1, 6.1_
+  
+  - [ ] 15.2 Fix any integration issues and optimize performance
+    - Address any API integration bugs or edge cases
+    - Optimize API call patterns and reduce unnecessary requests
+    - Implement proper loading states and error boundaries
+    - Test application performance under realistic load
+    - _Requirements: 8.1, 8.2, 8.4, 10.1, 10.2, 10.3_

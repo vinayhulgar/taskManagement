@@ -12,6 +12,7 @@ vi.mock('../../api', () => ({
   TokenManager: {
     setAccessToken: vi.fn(),
     setRefreshToken: vi.fn(),
+    getAccessToken: vi.fn(),
     getRefreshToken: vi.fn(),
     clearTokens: vi.fn(),
     hasValidToken: vi.fn(),

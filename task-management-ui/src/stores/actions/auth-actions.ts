@@ -1,5 +1,5 @@
 import { useAuthStore } from '../auth-store';
-import { authService } from '../../services/auth';
+import { AuthService } from '../../services/auth/auth-service';
 import { LoginForm, RegisterForm, AuthUser, AuthTokens } from '../../types';
 
 export const useAuthActions = () => {
@@ -10,17 +10,17 @@ export const useAuthActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await authService.login(credentials);
+      const response = await AuthService.login(credentials);
       
-      if (response.success && response.data) {
-        const { user, accessToken, refreshToken, expiresAt } = response.data;
-        const tokens: AuthTokens = { accessToken, refreshToken, expiresAt };
-        
-        store.login(user, tokens);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Login failed');
-      }
+      const user: AuthUser = response.user;
+      const tokens: AuthTokens = {
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        expiresAt: response.expiresAt,
+      };
+      
+      store.login(user, tokens);
+      return { success: true, data: response };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Login failed';
       store.setError(errorMessage);
@@ -35,17 +35,17 @@ export const useAuthActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await authService.register(userData);
+      const response = await AuthService.register(userData);
       
-      if (response.success && response.data) {
-        const { user, accessToken, refreshToken, expiresAt } = response.data;
-        const tokens: AuthTokens = { accessToken, refreshToken, expiresAt };
-        
-        store.login(user, tokens);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Registration failed');
-      }
+      const user: AuthUser = response.user;
+      const tokens: AuthTokens = {
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        expiresAt: response.expiresAt,
+      };
+      
+      store.login(user, tokens);
+      return { success: true, data: response };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Registration failed';
       store.setError(errorMessage);
@@ -59,11 +59,7 @@ export const useAuthActions = () => {
     try {
       store.setLoading(true);
       
-      const tokens = store.tokens;
-      if (tokens?.refreshToken) {
-        await authService.logout(tokens.refreshToken);
-      }
-      
+      await AuthService.logout();
       store.logout();
       return { success: true };
     } catch (error) {
@@ -77,26 +73,20 @@ export const useAuthActions = () => {
 
   const refreshToken = async () => {
     try {
-      const tokens = store.tokens;
-      if (!tokens?.refreshToken) {
+      if (!AuthService.isAuthenticated()) {
         throw new Error('No refresh token available');
       }
 
-      const response = await authService.refreshToken(tokens.refreshToken);
+      const response = await AuthService.refreshToken();
       
-      if (response.success && response.data) {
-        const { accessToken, refreshToken: newRefreshToken, expiresAt } = response.data;
-        const newTokens: AuthTokens = { 
-          accessToken, 
-          refreshToken: newRefreshToken, 
-          expiresAt 
-        };
-        
-        store.setTokens(newTokens);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Token refresh failed');
-      }
+      const newTokens: AuthTokens = {
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken || store.tokens?.refreshToken || '',
+        expiresAt: response.expiresAt,
+      };
+      
+      store.setTokens(newTokens);
+      return { success: true, data: response };
     } catch (error) {
       // If refresh fails, logout user
       store.logout();
@@ -133,17 +123,12 @@ export const useAuthActions = () => {
 
   const checkAuthStatus = async () => {
     try {
-      const tokens = store.tokens;
-      if (!tokens?.accessToken) {
+      if (!AuthService.isAuthenticated()) {
         return { success: false, error: 'No access token' };
       }
 
-      // Check if token is expired
-      const expiresAt = new Date(tokens.expiresAt);
-      const now = new Date();
-      
-      if (expiresAt <= now) {
-        // Try to refresh token
+      // Check if token is expiring soon and refresh if needed
+      if (AuthService.isTokenExpiringSoon()) {
         return await refreshToken();
       }
 

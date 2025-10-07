@@ -1,6 +1,6 @@
 import { useProjectsStore } from '../projects-store';
-import { projectService } from '../../services/project';
-import { Project, ProjectForm, ProjectMember, FilterState, SortState } from '../../types';
+import { ProjectService } from '../../services/project/project-service';
+import { Project, ProjectForm, ProjectMember, FilterState, SortState, ProjectRole } from '../../types';
 
 export const useProjectsActions = () => {
   const store = useProjectsStore();
@@ -10,14 +10,18 @@ export const useProjectsActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await projectService.getProjects(filters);
+      // Convert FilterState to ProjectSearchParams
+      const searchParams = filters ? {
+        query: filters.search,
+        status: filters.status as any,
+        teamId: filters.team?.[0], // Take first team for now
+        assignedToMe: filters.assignee?.includes('me'),
+      } : {};
+
+      const response = await ProjectService.getProjects(searchParams);
       
-      if (response.success && response.data) {
-        store.setProjects(response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to fetch projects');
-      }
+      store.setProjects(response.data);
+      return { success: true, data: response.data };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch projects';
       store.setError(errorMessage);
@@ -32,14 +36,10 @@ export const useProjectsActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await projectService.createProject(projectData);
+      const project = await ProjectService.createProject(projectData);
       
-      if (response.success && response.data) {
-        store.addProject(response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to create project');
-      }
+      store.addProject(project);
+      return { success: true, data: project };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create project';
       store.setError(errorMessage);
@@ -57,17 +57,13 @@ export const useProjectsActions = () => {
       // Optimistically update the project
       store.updateProject(projectId, updates);
 
-      const response = await projectService.updateProject(projectId, updates);
+      const project = await ProjectService.updateProject(projectId, updates);
       
-      if (response.success && response.data) {
-        store.updateProject(projectId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        // Revert optimistic update on failure
-        await fetchProjects();
-        throw new Error(response.message || 'Failed to update project');
-      }
+      store.updateProject(projectId, project);
+      return { success: true, data: project };
     } catch (error) {
+      // Revert optimistic update on failure
+      await fetchProjects();
       const errorMessage = error instanceof Error ? error.message : 'Failed to update project';
       store.setError(errorMessage);
       return { success: false, error: errorMessage };
@@ -81,14 +77,10 @@ export const useProjectsActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await projectService.deleteProject(projectId);
+      await ProjectService.deleteProject(projectId);
       
-      if (response.success) {
-        store.removeProject(projectId);
-        return { success: true };
-      } else {
-        throw new Error(response.message || 'Failed to delete project');
-      }
+      store.removeProject(projectId);
+      return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete project';
       store.setError(errorMessage);
@@ -103,14 +95,10 @@ export const useProjectsActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await projectService.getProjectMembers(projectId);
+      const members = await ProjectService.getProjectMembers(projectId);
       
-      if (response.success && response.data) {
-        store.setProjectMembers(projectId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to fetch project members');
-      }
+      store.setProjectMembers(projectId, members);
+      return { success: true, data: members };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch project members';
       store.setError(errorMessage);
@@ -120,19 +108,15 @@ export const useProjectsActions = () => {
     }
   };
 
-  const assignMember = async (projectId: string, userId: string, role: string) => {
+  const assignMember = async (projectId: string, userId: string, role: ProjectRole) => {
     try {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await projectService.assignMember(projectId, { userId, role });
+      const member = await ProjectService.assignMember(projectId, { userId, role });
       
-      if (response.success && response.data) {
-        store.addProjectMember(projectId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to assign member');
-      }
+      store.addProjectMember(projectId, member);
+      return { success: true, data: member };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to assign member';
       store.setError(errorMessage);
@@ -142,25 +126,21 @@ export const useProjectsActions = () => {
     }
   };
 
-  const updateMemberRole = async (projectId: string, memberId: string, role: string) => {
+  const updateMemberRole = async (projectId: string, memberId: string, role: ProjectRole) => {
     try {
       store.setLoading(true);
       store.setError(null);
 
       // Optimistically update the member role
-      store.updateProjectMember(projectId, memberId, { role: role as any });
+      store.updateProjectMember(projectId, memberId, { role });
 
-      const response = await projectService.updateMemberRole(projectId, memberId, role);
+      const member = await ProjectService.updateMemberRole(projectId, memberId, role);
       
-      if (response.success && response.data) {
-        store.updateProjectMember(projectId, memberId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        // Revert optimistic update on failure
-        await fetchProjectMembers(projectId);
-        throw new Error(response.message || 'Failed to update member role');
-      }
+      store.updateProjectMember(projectId, memberId, member);
+      return { success: true, data: member };
     } catch (error) {
+      // Revert optimistic update on failure
+      await fetchProjectMembers(projectId);
       const errorMessage = error instanceof Error ? error.message : 'Failed to update member role';
       store.setError(errorMessage);
       return { success: false, error: errorMessage };
@@ -174,14 +154,10 @@ export const useProjectsActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await projectService.removeMember(projectId, memberId);
+      await ProjectService.removeMember(projectId, memberId);
       
-      if (response.success) {
-        store.removeProjectMember(projectId, memberId);
-        return { success: true };
-      } else {
-        throw new Error(response.message || 'Failed to remove member');
-      }
+      store.removeProjectMember(projectId, memberId);
+      return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to remove member';
       store.setError(errorMessage);

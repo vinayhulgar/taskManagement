@@ -86,8 +86,7 @@ const createApiClient = (): AxiosInstance => {
 // Create and export the API client instance
 export const apiClient = createApiClient();
 
-// Export token manager for use in other services
-export { TokenManager };
+// TokenManager is already exported above with the class definition
 
 // Utility function to check if error is an API error
 export const isApiError = (error: any): error is ApiError => {

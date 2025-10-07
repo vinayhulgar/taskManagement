@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AuthState, AuthUser, AuthTokens, LoginForm, RegisterForm, UserRole } from '../types';
+import { AuthService } from '../services/auth/auth-service';
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginForm) => Promise<void>;
@@ -32,22 +33,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     error: null,
   });
 
-  // Initialize auth state from localStorage on mount
+  // Initialize auth state from stored tokens on mount
   useEffect(() => {
-    const initializeAuth = () => {
+    const initializeAuth = async () => {
       try {
-        const storedTokens = localStorage.getItem('auth_tokens');
-        const storedUser = localStorage.getItem('auth_user');
+        // Check if user is authenticated using AuthService
+        if (AuthService.isAuthenticated()) {
+          const tokens = AuthService.getTokens();
+          const user = AuthService.getCurrentUserFromToken();
 
-        if (storedTokens && storedUser) {
-          const tokens: AuthTokens = JSON.parse(storedTokens);
-          const user: AuthUser = JSON.parse(storedUser);
-
-          // Check if token is expired
-          const expiresAt = new Date(tokens.expiresAt);
-          const now = new Date();
-
-          if (expiresAt > now) {
+          if (tokens && user) {
             setState({
               user,
               tokens,
@@ -55,10 +50,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               isLoading: false,
               error: null,
             });
+
+            // If token is expiring soon, try to refresh it
+            if (AuthService.isTokenExpiringSoon()) {
+              try {
+                await refreshToken();
+              } catch (error) {
+                console.warn('Failed to refresh token during initialization:', error);
+              }
+            }
           } else {
-            // Token expired, clear storage
-            localStorage.removeItem('auth_tokens');
-            localStorage.removeItem('auth_user');
             setState(prev => ({
               ...prev,
               isLoading: false,
@@ -72,8 +73,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
-        localStorage.removeItem('auth_tokens');
-        localStorage.removeItem('auth_user');
+        AuthService.clearAuth();
         setState(prev => ({
           ...prev,
           isLoading: false,
@@ -83,38 +83,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     initializeAuth();
+
+    // Listen for token expiration events from API interceptors
+    const handleTokenExpired = () => {
+      setState({
+        user: null,
+        tokens: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: 'Your session has expired. Please log in again.',
+      });
+    };
+
+    window.addEventListener('auth:token-expired', handleTokenExpired);
+
+    return () => {
+      window.removeEventListener('auth:token-expired', handleTokenExpired);
+    };
   }, []);
 
   const login = async (credentials: LoginForm): Promise<void> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // TODO: Replace with actual API call
-      // This is a mock implementation for now
-      const mockResponse = {
-        user: {
-          id: '1',
-          email: credentials.email,
-          firstName: 'John',
-          lastName: 'Doe',
-          role: UserRole.USER,
-        },
-        tokens: {
-          accessToken: 'mock_access_token',
-          refreshToken: 'mock_refresh_token',
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-        },
+      const response = await AuthService.login(credentials);
+      
+      const user: AuthUser = response.user;
+      const tokens: AuthTokens = {
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        expiresAt: response.expiresAt,
       };
 
-      // Store in localStorage if rememberMe is true
-      if (credentials.rememberMe) {
-        localStorage.setItem('auth_tokens', JSON.stringify(mockResponse.tokens));
-        localStorage.setItem('auth_user', JSON.stringify(mockResponse.user));
-      }
-
       setState({
-        user: mockResponse.user,
-        tokens: mockResponse.tokens,
+        user,
+        tokens,
         isAuthenticated: true,
         isLoading: false,
         error: null,
@@ -133,30 +136,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // TODO: Replace with actual API call
-      // This is a mock implementation for now
-      const mockResponse = {
-        user: {
-          id: '1',
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          role: UserRole.USER,
-        },
-        tokens: {
-          accessToken: 'mock_access_token',
-          refreshToken: 'mock_refresh_token',
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-        },
+      const response = await AuthService.register(userData);
+      
+      const user: AuthUser = response.user;
+      const tokens: AuthTokens = {
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+        expiresAt: response.expiresAt,
       };
 
-      // Store in localStorage
-      localStorage.setItem('auth_tokens', JSON.stringify(mockResponse.tokens));
-      localStorage.setItem('auth_user', JSON.stringify(mockResponse.user));
-
       setState({
-        user: mockResponse.user,
-        tokens: mockResponse.tokens,
+        user,
+        tokens,
         isAuthenticated: true,
         isLoading: false,
         error: null,
@@ -171,38 +162,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('auth_tokens');
-    localStorage.removeItem('auth_user');
-    setState({
-      user: null,
-      tokens: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null,
-    });
+  const logout = async () => {
+    setState(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      await AuthService.logout();
+    } catch (error) {
+      console.warn('Server logout failed, proceeding with local logout:', error);
+    } finally {
+      setState({
+        user: null,
+        tokens: null,
+        isAuthenticated: false,
+        isLoading: false,
+        error: null,
+      });
+    }
   };
 
   const refreshToken = async (): Promise<void> => {
-    if (!state.tokens?.refreshToken) {
+    if (!AuthService.isAuthenticated()) {
       throw new Error('No refresh token available');
     }
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // TODO: Replace with actual API call
-      // This is a mock implementation for now
-      const mockResponse = {
-        accessToken: 'new_mock_access_token',
-        refreshToken: 'new_mock_refresh_token',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
-      };
-
-      const newTokens = mockResponse;
+      const response = await AuthService.refreshToken();
       
-      // Update localStorage
-      localStorage.setItem('auth_tokens', JSON.stringify(newTokens));
+      const newTokens: AuthTokens = {
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken || state.tokens?.refreshToken || '',
+        expiresAt: response.expiresAt,
+      };
 
       setState(prev => ({
         ...prev,
@@ -212,7 +204,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }));
     } catch (error) {
       // If refresh fails, logout user
-      logout();
+      await logout();
       throw error;
     }
   };

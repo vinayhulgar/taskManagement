@@ -45,7 +45,7 @@ export class WebSocketService {
       this.isManualClose = false;
 
       try {
-        const token = useAuthStore.getState().token;
+        const token = useAuthStore.getState().tokens?.accessToken;
         const wsUrl = `${this.config.url}?token=${token}`;
         
         this.ws = new WebSocket(wsUrl);

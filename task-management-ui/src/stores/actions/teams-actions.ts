@@ -1,6 +1,6 @@
 import { useTeamsStore } from '../teams-store';
-import { teamService } from '../../services/team';
-import { Team, TeamForm, TeamMember } from '../../types';
+import { TeamService } from '../../services/team/team-service';
+import { Team, TeamForm, TeamMember, TeamRole } from '../../types';
 
 export const useTeamsActions = () => {
   const store = useTeamsStore();
@@ -10,14 +10,10 @@ export const useTeamsActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await teamService.getTeams();
+      const response = await TeamService.getTeams();
       
-      if (response.success && response.data) {
-        store.setTeams(response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to fetch teams');
-      }
+      store.setTeams(response.data);
+      return { success: true, data: response.data };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch teams';
       store.setError(errorMessage);
@@ -32,14 +28,10 @@ export const useTeamsActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await teamService.createTeam(teamData);
+      const team = await TeamService.createTeam(teamData);
       
-      if (response.success && response.data) {
-        store.addTeam(response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to create team');
-      }
+      store.addTeam(team);
+      return { success: true, data: team };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create team';
       store.setError(errorMessage);
@@ -57,17 +49,13 @@ export const useTeamsActions = () => {
       // Optimistically update the team
       store.updateTeam(teamId, updates);
 
-      const response = await teamService.updateTeam(teamId, updates);
+      const team = await TeamService.updateTeam(teamId, updates);
       
-      if (response.success && response.data) {
-        store.updateTeam(teamId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        // Revert optimistic update on failure
-        await fetchTeams();
-        throw new Error(response.message || 'Failed to update team');
-      }
+      store.updateTeam(teamId, team);
+      return { success: true, data: team };
     } catch (error) {
+      // Revert optimistic update on failure
+      await fetchTeams();
       const errorMessage = error instanceof Error ? error.message : 'Failed to update team';
       store.setError(errorMessage);
       return { success: false, error: errorMessage };
@@ -81,14 +69,10 @@ export const useTeamsActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await teamService.deleteTeam(teamId);
+      await TeamService.deleteTeam(teamId);
       
-      if (response.success) {
-        store.removeTeam(teamId);
-        return { success: true };
-      } else {
-        throw new Error(response.message || 'Failed to delete team');
-      }
+      store.removeTeam(teamId);
+      return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete team';
       store.setError(errorMessage);
@@ -103,14 +87,10 @@ export const useTeamsActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await teamService.getTeamMembers(teamId);
+      const members = await TeamService.getTeamMembers(teamId);
       
-      if (response.success && response.data) {
-        store.setTeamMembers(teamId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to fetch team members');
-      }
+      store.setTeamMembers(teamId, members);
+      return { success: true, data: members };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch team members';
       store.setError(errorMessage);
@@ -120,19 +100,15 @@ export const useTeamsActions = () => {
     }
   };
 
-  const inviteMember = async (teamId: string, email: string) => {
+  const inviteMember = async (teamId: string, email: string, role: TeamRole = TeamRole.MEMBER) => {
     try {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await teamService.inviteMember(teamId, { email });
+      const member = await TeamService.inviteMember(teamId, { email, role });
       
-      if (response.success && response.data) {
-        store.addTeamMember(teamId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to invite member');
-      }
+      store.addTeamMember(teamId, member);
+      return { success: true, data: member };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to invite member';
       store.setError(errorMessage);
@@ -142,25 +118,21 @@ export const useTeamsActions = () => {
     }
   };
 
-  const updateMemberRole = async (teamId: string, memberId: string, role: string) => {
+  const updateMemberRole = async (teamId: string, memberId: string, role: TeamRole) => {
     try {
       store.setLoading(true);
       store.setError(null);
 
       // Optimistically update the member role
-      store.updateTeamMember(teamId, memberId, { role: role as any });
+      store.updateTeamMember(teamId, memberId, { role });
 
-      const response = await teamService.updateMemberRole(teamId, memberId, role);
+      const member = await TeamService.updateMemberRole(teamId, memberId, role);
       
-      if (response.success && response.data) {
-        store.updateTeamMember(teamId, memberId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        // Revert optimistic update on failure
-        await fetchTeamMembers(teamId);
-        throw new Error(response.message || 'Failed to update member role');
-      }
+      store.updateTeamMember(teamId, memberId, member);
+      return { success: true, data: member };
     } catch (error) {
+      // Revert optimistic update on failure
+      await fetchTeamMembers(teamId);
       const errorMessage = error instanceof Error ? error.message : 'Failed to update member role';
       store.setError(errorMessage);
       return { success: false, error: errorMessage };
@@ -174,14 +146,10 @@ export const useTeamsActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await teamService.removeMember(teamId, memberId);
+      await TeamService.removeMember(teamId, memberId);
       
-      if (response.success) {
-        store.removeTeamMember(teamId, memberId);
-        return { success: true };
-      } else {
-        throw new Error(response.message || 'Failed to remove member');
-      }
+      store.removeTeamMember(teamId, memberId);
+      return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to remove member';
       store.setError(errorMessage);

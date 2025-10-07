@@ -1,5 +1,5 @@
 import { useTasksStore } from '../tasks-store';
-import { taskService } from '../../services/task';
+import { TaskService } from '../../services/task/task-service';
 import { Task, TaskForm, TaskStatus, Priority, FilterState, SortState } from '../../types';
 
 export const useTasksActions = () => {
@@ -10,14 +10,22 @@ export const useTasksActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await taskService.getTasks(filters);
+      // Convert FilterState to TaskSearchParams
+      const searchParams = filters ? {
+        query: filters.search,
+        status: filters.status,
+        priority: filters.priority,
+        assigneeId: filters.assignee?.[0], // Take first assignee for now
+        projectId: filters.project?.[0], // Take first project for now
+        tags: filters.tags,
+        dueDateFrom: filters.dateRange?.start,
+        dueDateTo: filters.dateRange?.end,
+      } : {};
+
+      const response = await TaskService.getTasks(searchParams);
       
-      if (response.success && response.data) {
-        store.setTasks(response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to fetch tasks');
-      }
+      store.setTasks(response.data);
+      return { success: true, data: response.data };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch tasks';
       store.setError(errorMessage);
@@ -32,14 +40,10 @@ export const useTasksActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await taskService.getTasksByProject(projectId);
+      const tasks = await TaskService.getTasksByProject(projectId);
       
-      if (response.success && response.data) {
-        store.setTasks(response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to fetch project tasks');
-      }
+      store.setTasks(tasks);
+      return { success: true, data: tasks };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch project tasks';
       store.setError(errorMessage);
@@ -54,14 +58,10 @@ export const useTasksActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await taskService.createTask(taskData);
+      const task = await TaskService.createTask(taskData);
       
-      if (response.success && response.data) {
-        store.addTask(response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to create task');
-      }
+      store.addTask(task);
+      return { success: true, data: task };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create task';
       store.setError(errorMessage);
@@ -79,17 +79,13 @@ export const useTasksActions = () => {
       // Optimistically update the task
       store.updateTask(taskId, updates);
 
-      const response = await taskService.updateTask(taskId, updates);
+      const task = await TaskService.updateTask(taskId, updates);
       
-      if (response.success && response.data) {
-        store.updateTask(taskId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        // Revert optimistic update on failure
-        await fetchTasks();
-        throw new Error(response.message || 'Failed to update task');
-      }
+      store.updateTask(taskId, task);
+      return { success: true, data: task };
     } catch (error) {
+      // Revert optimistic update on failure
+      await fetchTasks();
       const errorMessage = error instanceof Error ? error.message : 'Failed to update task';
       store.setError(errorMessage);
       return { success: false, error: errorMessage };
@@ -103,14 +99,10 @@ export const useTasksActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await taskService.deleteTask(taskId);
+      await TaskService.deleteTask(taskId);
       
-      if (response.success) {
-        store.removeTask(taskId);
-        return { success: true };
-      } else {
-        throw new Error(response.message || 'Failed to delete task');
-      }
+      store.removeTask(taskId);
+      return { success: true };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete task';
       store.setError(errorMessage);
@@ -128,17 +120,13 @@ export const useTasksActions = () => {
       // Optimistically update the task status
       store.moveTask(taskId, newStatus);
 
-      const response = await taskService.updateTaskStatus(taskId, newStatus);
+      const task = await TaskService.updateTaskStatus(taskId, newStatus);
       
-      if (response.success && response.data) {
-        store.updateTask(taskId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        // Revert optimistic update on failure
-        await fetchTasks();
-        throw new Error(response.message || 'Failed to move task');
-      }
+      store.updateTask(taskId, task);
+      return { success: true, data: task };
     } catch (error) {
+      // Revert optimistic update on failure
+      await fetchTasks();
       const errorMessage = error instanceof Error ? error.message : 'Failed to move task';
       store.setError(errorMessage);
       return { success: false, error: errorMessage };
@@ -155,17 +143,15 @@ export const useTasksActions = () => {
       // Optimistically update the task assignee
       store.assignTask(taskId, assigneeId);
 
-      const response = await taskService.assignTask(taskId, assigneeId);
+      const task = assigneeId 
+        ? await TaskService.assignTask(taskId, assigneeId)
+        : await TaskService.unassignTask(taskId);
       
-      if (response.success && response.data) {
-        store.updateTask(taskId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        // Revert optimistic update on failure
-        await fetchTasks();
-        throw new Error(response.message || 'Failed to assign task');
-      }
+      store.updateTask(taskId, task);
+      return { success: true, data: task };
     } catch (error) {
+      // Revert optimistic update on failure
+      await fetchTasks();
       const errorMessage = error instanceof Error ? error.message : 'Failed to assign task';
       store.setError(errorMessage);
       return { success: false, error: errorMessage };
@@ -182,17 +168,13 @@ export const useTasksActions = () => {
       // Optimistically update the task priority
       store.setTaskPriority(taskId, priority);
 
-      const response = await taskService.updateTask(taskId, { priority });
+      const task = await TaskService.updateTaskPriority(taskId, priority);
       
-      if (response.success && response.data) {
-        store.updateTask(taskId, response.data);
-        return { success: true, data: response.data };
-      } else {
-        // Revert optimistic update on failure
-        await fetchTasks();
-        throw new Error(response.message || 'Failed to update task priority');
-      }
+      store.updateTask(taskId, task);
+      return { success: true, data: task };
     } catch (error) {
+      // Revert optimistic update on failure
+      await fetchTasks();
       const errorMessage = error instanceof Error ? error.message : 'Failed to update task priority';
       store.setError(errorMessage);
       return { success: false, error: errorMessage };
@@ -206,14 +188,10 @@ export const useTasksActions = () => {
       store.setLoading(true);
       store.setError(null);
 
-      const response = await taskService.searchTasks(query);
+      const tasks = await TaskService.searchTasks(query);
       
-      if (response.success && response.data) {
-        store.setTasks(response.data);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message || 'Failed to search tasks');
-      }
+      store.setTasks(tasks);
+      return { success: true, data: tasks };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to search tasks';
       store.setError(errorMessage);
@@ -256,19 +234,15 @@ export const useTasksActions = () => {
         store.moveTask(taskId, status);
       });
 
-      const response = await taskService.bulkUpdateStatus(taskIds, status);
+      const tasks = await TaskService.bulkUpdateTasks(taskIds, { status });
       
-      if (response.success && response.data) {
-        response.data.forEach((task: Task) => {
-          store.updateTask(task.id, task);
-        });
-        return { success: true, data: response.data };
-      } else {
-        // Revert optimistic updates on failure
-        await fetchTasks();
-        throw new Error(response.message || 'Failed to bulk update tasks');
-      }
+      tasks.forEach((task: Task) => {
+        store.updateTask(task.id, task);
+      });
+      return { success: true, data: tasks };
     } catch (error) {
+      // Revert optimistic updates on failure
+      await fetchTasks();
       const errorMessage = error instanceof Error ? error.message : 'Failed to bulk update tasks';
       store.setError(errorMessage);
       return { success: false, error: errorMessage };
@@ -287,19 +261,15 @@ export const useTasksActions = () => {
         store.assignTask(taskId, assigneeId);
       });
 
-      const response = await taskService.bulkAssign(taskIds, assigneeId);
+      const tasks = await TaskService.bulkUpdateTasks(taskIds, { assigneeId });
       
-      if (response.success && response.data) {
-        response.data.forEach((task: Task) => {
-          store.updateTask(task.id, task);
-        });
-        return { success: true, data: response.data };
-      } else {
-        // Revert optimistic updates on failure
-        await fetchTasks();
-        throw new Error(response.message || 'Failed to bulk assign tasks');
-      }
+      tasks.forEach((task: Task) => {
+        store.updateTask(task.id, task);
+      });
+      return { success: true, data: tasks };
     } catch (error) {
+      // Revert optimistic updates on failure
+      await fetchTasks();
       const errorMessage = error instanceof Error ? error.message : 'Failed to bulk assign tasks';
       store.setError(errorMessage);
       return { success: false, error: errorMessage };
