@@ -1,6 +1,7 @@
 import React from 'react';
 import { cn } from '@/utils';
 import type { ButtonProps } from '@/types';
+import { useAccessibilityContext } from '@/contexts/AccessibilityContext';
 
 const buttonVariants = {
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90 focus-visible:ring-primary btn-primary',
@@ -26,37 +27,57 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     children, 
     type = 'button',
     onClick,
+    'aria-label': ariaLabel,
+    'aria-describedby': ariaDescribedBy,
     ...props 
   }, ref) => {
     const isDisabled = disabled || loading;
+    const { prefersReducedMotion } = useAccessibilityContext();
+
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (onClick && !isDisabled) {
+        onClick(e);
+      }
+    };
 
     return (
       <button
         ref={ref}
         type={type}
         disabled={isDisabled}
-        onClick={onClick}
+        onClick={handleClick}
+        aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
+        aria-disabled={isDisabled}
         className={cn(
           // Base styles
-          'inline-flex items-center justify-center rounded-md font-medium transition-colors',
+          'inline-flex items-center justify-center rounded-md font-medium',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
           'disabled:opacity-50 disabled:pointer-events-none',
+          // Transition styles (respect reduced motion)
+          !prefersReducedMotion && 'transition-colors duration-200',
           // Variant styles
           buttonVariants[variant],
           // Size styles
           buttonSizes[size],
           // Loading state
           loading && 'cursor-wait',
+          // High contrast support
+          'high-contrast:border-2 high-contrast:border-current',
           className
         )}
         {...props}
       >
         {loading && (
           <svg
-            className="mr-2 h-4 w-4 animate-spin"
+            className={cn(
+              "mr-2 h-4 w-4",
+              !prefersReducedMotion && "animate-spin"
+            )}
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <circle
               className="opacity-25"
@@ -73,6 +94,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             />
           </svg>
         )}
+        {loading && <span className="sr-only">Loading...</span>}
         {children}
       </button>
     );

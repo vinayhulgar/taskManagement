@@ -4,6 +4,9 @@ import { cn } from '@/utils';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { MobileDrawer } from './MobileDrawer';
+import { SkipLinks } from '@/components/accessibility/SkipLinks';
+import { KeyboardShortcutsHelp } from '@/components/accessibility/KeyboardShortcutsHelp';
+import { useAccessibilityContext } from '@/contexts/AccessibilityContext';
 
 export interface AppLayoutProps {
   children?: React.ReactNode;
@@ -16,6 +19,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { prefersReducedMotion } = useAccessibilityContext();
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const closeSidebar = () => setSidebarOpen(false);
@@ -23,6 +27,9 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Skip Links */}
+      <SkipLinks />
+
       {/* Mobile drawer overlay */}
       {sidebarOpen && (
         <div 
@@ -35,15 +42,20 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       <div className="flex h-screen">
         {/* Desktop Sidebar */}
         {sidebar && (
-          <div className={cn(
-            "hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 z-50 transition-all duration-300",
-            sidebarCollapsed ? "lg:w-16" : "lg:w-64"
-          )}>
+          <nav 
+            id="navigation"
+            className={cn(
+              "hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 z-50",
+              !prefersReducedMotion && "transition-all duration-300",
+              sidebarCollapsed ? "lg:w-16" : "lg:w-64"
+            )}
+            aria-label="Main navigation"
+          >
             <Sidebar 
               isCollapsed={sidebarCollapsed}
               onToggle={toggleCollapsed}
             />
-          </div>
+          </nav>
         )}
 
         {/* Mobile Drawer */}
@@ -67,13 +79,21 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
           />
 
           {/* Main content */}
-          <main className="flex-1 overflow-auto">
+          <main 
+            id="main-content"
+            className="flex-1 overflow-auto"
+            role="main"
+            aria-label="Main content"
+          >
             <div className="main-content">
               {children || <Outlet />}
             </div>
           </main>
         </div>
       </div>
+
+      {/* Keyboard shortcuts help */}
+      <KeyboardShortcutsHelp />
     </div>
   );
 };
