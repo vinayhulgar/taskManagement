@@ -62,6 +62,8 @@ const LoginPage: React.FC = () => {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to {APP_NAME}
           </h2>
+          {/* TEMPORARILY COMMENTED OUT FOR TESTING */}
+          {/*
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{' '}
             <Link
@@ -71,6 +73,7 @@ const LoginPage: React.FC = () => {
               create a new account
             </Link>
           </p>
+          */}
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>

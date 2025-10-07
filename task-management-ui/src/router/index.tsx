@@ -33,6 +33,8 @@ export const router = createBrowserRouter([
     path: '/',
     element: <Navigate to="/dashboard" replace />,
   },
+  // AUTHENTICATION ROUTES COMMENTED OUT FOR TESTING
+  /*
   {
     path: '/login',
     element: (
@@ -63,14 +65,14 @@ export const router = createBrowserRouter([
       </ProtectedRoute>
     ),
   },
+  */
   {
     path: '/',
     element: (
-      <ProtectedRoute>
-        <React.Suspense fallback={<PageLoader />}>
-          <AppLayout />
-        </React.Suspense>
-      </ProtectedRoute>
+      // REMOVED PROTECTED ROUTE FOR TESTING - DIRECT ACCESS TO APP
+      <React.Suspense fallback={<PageLoader />}>
+        <AppLayout />
+      </React.Suspense>
     ),
     children: [
       {

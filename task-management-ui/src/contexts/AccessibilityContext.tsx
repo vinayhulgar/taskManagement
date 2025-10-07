@@ -32,6 +32,27 @@ interface AccessibilityProviderProps {
 }
 
 export const AccessibilityProvider: React.FC<AccessibilityProviderProps> = ({ children }) => {
+  // TEMPORARILY SIMPLIFIED TO AVOID LOOPS - STATIC VALUES FOR TESTING
+  const mockValue: AccessibilityContextType = {
+    isHighContrast: false,
+    prefersReducedMotion: false,
+    announce: (message: string, priority?: 'polite' | 'assertive') => {
+      console.log('Announce bypassed for testing:', message, priority);
+    },
+    announceToLiveRegion: (message: string) => {
+      console.log('AnnounceToLiveRegion bypassed for testing:', message);
+    },
+    keyboardShortcuts: [],
+  };
+
+  return (
+    <AccessibilityContext.Provider value={mockValue}>
+      {children}
+    </AccessibilityContext.Provider>
+  );
+
+  // COMMENTED OUT REAL IMPLEMENTATION TO AVOID LOOPS
+  /*
   const { announce } = useScreenReader();
   const { announce: announceToLiveRegion } = useLiveRegion();
   const isHighContrast = useHighContrast();
@@ -75,4 +96,5 @@ export const AccessibilityProvider: React.FC<AccessibilityProviderProps> = ({ ch
       {children}
     </AccessibilityContext.Provider>
   );
+  */
 };

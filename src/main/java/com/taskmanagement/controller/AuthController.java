@@ -40,6 +40,8 @@ public class AuthController {
         this.userDetailsService = userDetailsService;
     }
 
+    // TEMPORARILY COMMENTED OUT FOR TESTING
+    /*
     @Operation(summary = "Register a new user")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "201", description = "User registered successfully"),
@@ -79,6 +81,7 @@ public class AuthController {
             return ResponseEntity.badRequest().build();
         }
     }
+    */
 
     @Operation(summary = "Authenticate user and get tokens")
     @ApiResponses(value = {
