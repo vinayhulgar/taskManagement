@@ -32,6 +32,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           id={textareaId}
           aria-invalid={error ? 'true' : 'false'}
           aria-describedby={error ? errorId : undefined}
+          onChange={(e) => props.onChange?.(e.target.value)}
           className={cn(
             // Base styles
             'flex min-h-[80px] w-full rounded-md border px-3 py-2 text-sm',
@@ -46,7 +47,7 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
               : 'border-gray-300 bg-white',
             className
           )}
-          {...props}
+          {...(({ onChange, ...rest }) => rest)(props)}
         />
         {error && (
           <p id={errorId} className="text-sm text-red-600" role="alert">
